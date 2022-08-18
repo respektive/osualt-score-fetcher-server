@@ -160,7 +160,7 @@ where EXCLUDED.score >= scores.score"""
     
     # when everything is done fetching
     mycur.execute("INSERT INTO fetched_users (user_id, username) VALUES (?, ?)", (userid, username))
-    mycur.execute("DELETE FROM queue WHERE user_id = ?", (userid))
+    mycur.execute("DELETE FROM queue WHERE user_id = ?", (userid,))
     print("All done.")
 
 if validToken():
