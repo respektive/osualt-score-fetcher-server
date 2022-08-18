@@ -7,11 +7,11 @@ import mariadb
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-# pg_conn = f"host={config['POSTGRES']['host']} dbname={config['POSTGRES']['database']} user={config['POSTGRES']['user']} password={config['POSTGRES']['password']}"
+pg_conn = f"host={config['POSTGRES']['host']} dbname={config['POSTGRES']['database']} user={config['POSTGRES']['user']} password={config['POSTGRES']['password']}"
 
-# conn = psycopg2.connect(pg_conn)
-# conn.set_session(autocommit=True)
-# cur = conn.cursor()
+conn = psycopg2.connect(pg_conn)
+conn.set_session(autocommit=True)
+cur = conn.cursor()
 
 mariadb_conn = mariadb.connect(
     user=config['MYSQL']['user'],
@@ -145,7 +145,7 @@ pp = EXCLUDED.pp, replay_available = EXCLUDED.replay_available, is_hd = EXCLUDED
 is_dt = EXCLUDED.is_dt, is_fl = EXCLUDED.is_fl, is_ht = EXCLUDED.is_ht, is_ez = EXCLUDED.is_ez, is_nf = EXCLUDED.is_nf, 
 is_nc = EXCLUDED.is_nc, is_td = EXCLUDED.is_td, is_so = EXCLUDED.is_so, is_sd = EXCLUDED.is_sd, is_pf = EXCLUDED.is_pf 
 where EXCLUDED.score >= scores.score"""
-            #cur.execute(query)
+            cur.execute(query)
             counter += 1
             progress = f"{counter}/{len(beatmapIds)}"
             percentage = counter / len(beatmapIds) * 100
