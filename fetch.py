@@ -148,13 +148,13 @@ where EXCLUDED.score >= scores.score"""
             #cur.execute(query)
             counter += 1
             progress = f"{counter}/{len(beatmapIds)}"
-            percentage = counter / len(beatmapIds)
+            percentage = counter / len(beatmapIds) * 100
             mycur.execute("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", (progress, percentage, userid))
             print(f'({progress}) found score for user {userid} on beatmap id: {beatmap_id}')
         else:
             counter += 1
             progress = f"{counter}/{len(beatmapIds)}"
-            percentage = counter / len(beatmapIds)
+            percentage = counter / len(beatmapIds) * 100
             mycur.execute("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", (progress, percentage, userid))
             print(f'({progress}) no score found for user {userid} on beatmap id: {beatmap_id}')
     
