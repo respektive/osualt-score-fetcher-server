@@ -103,11 +103,11 @@ async function insertScore(beatmapScore) {
     const beatmap_id = beatmapScore["score"]["beatmap_id"]
     const user_id = beatmapScore["score"]["user"]["id"]
     const mods = beatmapScore["score"]["mods"]
-    const score = beatmapScore["score"]["score"]             
-    const count300 = beatmapScore["score"]["statistics"]["count_300"]
-    const count100 = beatmapScore["score"]["statistics"]["count_100"]
-    const count50 = beatmapScore["score"]["statistics"]["count_50"]
-    const countmiss = beatmapScore["score"]["statistics"]["count_miss"]
+    const score = beatmapScore["score"]["total_score"]             
+    const count300 = beatmapScore["score"]["statistics"]["great"] ?? 0
+    const count100 = beatmapScore["score"]["statistics"]["ok"] ?? 0
+    const count50 = beatmapScore["score"]["statistics"]["meh"] ?? 0
+    const countmiss = beatmapScore["score"]["statistics"]["miss"] ?? 0
     const combo = beatmapScore["score"]["max_combo"]
     const perfect = Number(beatmapScore["score"]["legacy_perfect"])
     const enabled_mods = getModsEnum(mods.map(x => x.acronym))
