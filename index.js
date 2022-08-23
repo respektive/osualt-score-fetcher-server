@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const { spawn } = require('node:child_process')
+const { Worker, workerData } = require('node:worker_threads')
 const fetch = require('node-fetch')
 const mysql = require('mysql')
 const util = require('util')
@@ -71,19 +72,25 @@ app.get('/oauth', async function (req, res) {
   me = await getUserID(token).catch();
   user_id = me.id;
 
-  const python = spawn('python', ['fetch.py', token], {
-    detached: true,
-    stdio: [ 'ignore' ]
-  });
-  python.stdout.on('data', (data) => {
-      console.log(`stdout: ${data}`);
-    });
-  python.stderr.on('data', (data) => {
-      console.error(`stderr: ${data}`);
-    });
-  python.on('close', (code) => {
-      console.log(`child process exited with code ${code}`);
-    });
+  const fetched = await runSql("SELECT * FROM fetched_users WHERE user_id = ?", user_id)
+  const fetching = await runSql("SELECT * FROM queue WHERE user_id = ?", user_id)
+
+  if (fetched.length > 0) {
+    console.log("User already fetched")
+  } else if (fetching.length > 0) {
+    console.log("User already fetching")
+  } else {
+    console.log("User not fetched")
+    const worker = new Worker("./fetcher.js", { workerData: { access_token: token, user_id: user_id, username: me.username, most_played_count: me.beatmap_playcounts_count } })
+
+    worker.on('message', (msg) => console.log(msg))
+    worker.on('error', (err) => console.error(err))
+    worker.on('exit', (code) => {
+      if (code !== 0)
+        console.log(`Worker stopped with exit code ${code}`)
+    })
+  }
+
   console.log(token);
 
   res.redirect('https://osualt.respektive.pw/status')
