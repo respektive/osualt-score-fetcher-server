@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const { Worker, workerData } = require('node:worker_threads')
+const path = require('node:path')
 const fetch = require('node-fetch')
 const mysql = require('mysql')
 const util = require('util')
@@ -80,7 +81,7 @@ app.get('/oauth', async function (req, res) {
     console.log("User already fetching")
   } else {
     console.log("User not fetched")
-    const worker = new Worker("./fetcher.js", { workerData: { access_token: token, user_id: user_id, username: me.username, most_played_count: me.beatmap_playcounts_count } })
+    const worker = new Worker(path.resolve(__dirname, 'fetcher.js'), { workerData: { access_token: token, user_id: user_id, username: me.username, most_played_count: me.beatmap_playcounts_count } })
 
     worker.on('message', (msg) => console.log(msg))
     worker.on('error', (err) => console.error(err))
