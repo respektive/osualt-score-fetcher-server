@@ -1,11 +1,10 @@
 const express = require('express')
 const cors = require('cors')
-const { spawn } = require('node:child_process')
 const { Worker, workerData } = require('node:worker_threads')
 const fetch = require('node-fetch')
 const mysql = require('mysql')
 const util = require('util')
-const config = require('./config.json')
+const config = require('../config.json')
 
 const connection = mysql.createPool(config.MYSQL)
 const runSql = util.promisify(connection.query).bind(connection)
