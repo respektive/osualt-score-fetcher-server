@@ -14,7 +14,7 @@ const api = axios.create({
         Authorization: `Bearer ${access_token}`,
         "x-api-version": 20220707
     }
-});
+})
 
 const connection = mysql.createPool(config.MYSQL)
 const runSql = util.promisify(connection.query).bind(connection)
@@ -103,6 +103,8 @@ async function main() {
     } else {
         parentPort.postMessage("Invalid Token.")
     }
+
+    await client.end()
 }
 
 main()
