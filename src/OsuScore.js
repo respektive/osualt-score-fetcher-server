@@ -19,18 +19,18 @@ class OsuScore {
         this.rank = beatmapScore["score"]["rank"]
         this.pp = beatmapScore["score"]["pp"] ?? 0
         this.replay_available = Number(beatmapScore["score"]["replay"])
-        this.is_hd = "HD"in mods.map(x => x.acronym)
-        this.is_hr = "HR"in mods.map(x => x.acronym)
-        this.is_dt = ("DT"in mods.map(x => x.acronym) || "NC" in mods.map(x => x.acronym))
-        this.is_fl = "FL"in mods.map(x => x.acronym)
-        this.is_ht = "HT"in mods.map(x => x.acronym)
-        this.is_ez = "EZ"in mods.map(x => x.acronym)
-        this.is_nf = "NF"in mods.map(x => x.acronym)
-        this.is_nc = "NC"in mods.map(x => x.acronym)
-        this.is_td = "TD"in mods.map(x => x.acronym)
-        this.is_so = "SO"in mods.map(x => x.acronym)
-        this.is_sd = ("SD"in mods.map(x => x.acronym) || "PF" in mods.map(x => x.acronym))
-        this.is_pf = "PF"in mods.map(x => x.acronym)
+        this.is_hd = mods.map(x => x.acronym).includes("HD")
+        this.is_hr = mods.map(x => x.acronym).includes("HR")
+        this.is_dt = mods.map(x => x.acronym).includes("DT") || mods.map(x => x.acronym).includes("NC")
+        this.is_fl = mods.map(x => x.acronym).includes("FL")
+        this.is_ht = mods.map(x => x.acronym).includes("HT")
+        this.is_ez = mods.map(x => x.acronym).includes("EZ")
+        this.is_nf = mods.map(x => x.acronym).includes("NF")
+        this.is_nc = mods.map(x => x.acronym).includes("NC")
+        this.is_td = mods.map(x => x.acronym).includes("TD")
+        this.is_so = mods.map(x => x.acronym).includes("SO")
+        this.is_sd = mods.map(x => x.acronym).includes("SD") || mods.map(x => x.acronym).includes("PF")
+        this.is_pf = mods.map(x => x.acronym).includes("PF")
     }
 
     getInsert() {
