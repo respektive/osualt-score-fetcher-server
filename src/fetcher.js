@@ -23,7 +23,7 @@ const client = new Client(config.POSTGRES)
 
 let beatmapIds = []
 
-async function getBeatmaps(offset = 0){
+async function getMostPlayedBeatmaps(offset = 0){
     const response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
     let beatmaps = response.data;
 
@@ -41,6 +41,13 @@ async function getBeatmaps(offset = 0){
         await getBeatmaps(offset);
     }
 
+    return
+}
+
+async function getBeatmaps() {
+    const response = await axios.get("https://osu.respektive.pw/beatmaps");
+    const beatmaps = response.data;
+    beatmapIds = beatmaps.ranked.beatmaps
     return
 }
 
@@ -89,7 +96,7 @@ async function main() {
     await client.connect()
 
     if (validToken()) {
-        let progress = "Getting most played beatmaps..."
+        let progress = "Getting Beatmap IDs..."
         await runSql("insert into queue (user_id, username, progress) values (?, ?, ?)", [workerData.user_id, workerData.username, progress])
     
         await getBeatmaps()
