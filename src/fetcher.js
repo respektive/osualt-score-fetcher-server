@@ -47,7 +47,7 @@ async function getMostPlayedBeatmaps(offset = 0){
 async function getBeatmaps() {
     const response = await axios.get("https://osu.respektive.pw/beatmaps");
     const beatmaps = response.data;
-    beatmapIds = beatmaps.ranked.beatmaps
+    beatmapIds = beatmaps.ranked.beatmaps.concat(beatmaps.loved.beatmaps)
     return
 }
 
