@@ -19,7 +19,20 @@ const api = axios.create({
 const connection = mysql.createPool(config.MYSQL)
 const runSql = util.promisify(connection.query).bind(connection)
 
-const client = new Client(config.POSTGRES)
+let client
+
+async function connectPostgres() {
+    try {
+        client = new Client(config.POSTGRES)
+        await client.connect()
+    } catch (error) {
+        console.error("Error connecting to PostgreSQL database:", error)
+        console.log("Attempting to reconnect...")
+        setTimeout(connectPostgres, 5000)
+    }
+}
+
+connectPostgres()
 
 let beatmapIds = []
 
@@ -43,7 +56,14 @@ async function insertScore(beatmapScore) {
     const osu_score = new OsuScore(beatmapScore)
     const insert_query = osu_score.getInsert()
 
-    await client.query(insert_query)
+    try {
+        await client.query(insert_query)
+    } catch (error) {
+        console.error("Error inserting score into PostgreSQL database:", error)
+        console.log("Attempting to reconnect...")
+        await connectPostgres()
+        await insertScore(beatmapScore)
+    }
     return 
 }
 
@@ -65,15 +85,17 @@ async function fetchScores() {
         counter++
         let progress = `Fetching Scores... (${counter}/${beatmapIds.length})`
         let percentage = counter / beatmapIds.length * 100
-        await runSql("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", [progress, percentage, workerData.user_id])
+        try {
+            await runSql("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", [progress, percentage, workerData.user_id])
+        } catch (error) {
+            console.error("Error updating queue table in MySQL database:", error)
+        }
     }
 
     return
 }
 
 async function main() {
-    await client.connect()
-
     if (validToken()) {
         let progress = "Getting Beatmap IDs..."
         await runSql("insert into queue (user_id, username, progress) values (?, ?, ?)", [workerData.user_id, workerData.username, progress])
