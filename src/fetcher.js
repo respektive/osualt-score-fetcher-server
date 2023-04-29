@@ -25,12 +25,20 @@ async function connectPostgres() {
     try {
         client = new Client(config.POSTGRES)
         await client.connect()
+        console.log("Connected to PostgreSQL database")
     } catch (error) {
         console.error("Error connecting to PostgreSQL database:", error)
-        console.log("Attempting to reconnect...")
+        console.log("Attempting to reconnect in 5 seconds...")
         setTimeout(connectPostgres, 5000)
     }
+    
+    client.on("error", (error) => {
+        console.error("PostgreSQL client error:", error)
+        console.log("Attempting to reconnect in 5 seconds...")
+        setTimeout(connectPostgres, 5000)
+    })
 }
+
 
 connectPostgres()
 
