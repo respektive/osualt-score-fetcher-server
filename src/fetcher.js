@@ -124,7 +124,8 @@ async function insertScores(scores) {
     `;
   
     try {
-      await client.query(query);
+      let result = await client.query(query);
+      console.log(`${result.rowCount} row(s) inserted`)
     } catch (error) {
       console.error("Error inserting scores into PostgreSQL database:", error);
       console.log("Attempting to reconnect...");
