@@ -60,23 +60,83 @@ async function validToken() {
     return true
 }
 
-async function insertScore(beatmapScore) {
-    const osu_score = new OsuScore(beatmapScore)
-    const insert_query = osu_score.getInsert()
-
+async function insertScores(scores) {
+    const osu_scores = scores.map(score => new OsuScore(score));
+    const values = osu_scores.map(score => {
+      const {
+        user_id,
+        beatmap_id,
+        score: scoreValue,
+        count300,
+        count100,
+        count50,
+        countmiss,
+        combo,
+        perfect,
+        enabled_mods,
+        date_played,
+        rank,
+        pp,
+        replay_available,
+        is_hd,
+        is_hr,
+        is_dt,
+        is_fl,
+        is_ht,
+        is_ez,
+        is_nf,
+        is_nc,
+        is_td,
+        is_so,
+        is_sd,
+        is_pf
+      } = score;
+      return `(${user_id}, ${beatmap_id}, ${scoreValue}, ${count300}, ${count100}, ${count50}, ${countmiss}, ${combo}, ${perfect}, ${enabled_mods}, '${date_played}', '${rank}', ${pp}, ${replay_available}, ${is_hd}, ${is_hr}, ${is_dt}, ${is_fl}, ${is_ht}, ${is_ez}, ${is_nf}, ${is_nc}, ${is_td}, ${is_so}, ${is_sd}, ${is_pf})`;
+    }).join(',');
+    const query = `
+      INSERT INTO osu_scores (user_id, beatmap_id, score, count300, count100, count50, countmiss, combo, perfect, enabled_mods, date_played, rank, pp, replay_available, is_hd, is_hr, is_dt, is_fl, is_ht, is_ez, is_nf, is_nc, is_td, is_so, is_sd, is_pf)
+      VALUES ${values}
+      ON CONFLICT ON CONSTRAINT scores_pkey DO UPDATE SET 
+        score = EXCLUDED.score,
+        count300 = EXCLUDED.count300,
+        count100 = EXCLUDED.count100,
+        count50 = EXCLUDED.count50,
+        countmiss = EXCLUDED.countmiss,
+        combo = EXCLUDED.combo,
+        perfect = EXCLUDED.perfect,
+        enabled_mods = EXCLUDED.enabled_mods,
+        date_played = EXCLUDED.date_played,
+        rank = EXCLUDED.rank,
+        pp = EXCLUDED.pp,
+        replay_available = EXCLUDED.replay_available,
+        is_hd = EXCLUDED.is_hd,
+        is_hr = EXCLUDED.is_hr,
+        is_dt = EXCLUDED.is_dt,
+        is_fl = EXCLUDED.is_fl,
+        is_ht = EXCLUDED.is_ht,
+        is_ez = EXCLUDED.is_ez,
+        is_nf = EXCLUDED.is_nf,
+        is_nc = EXCLUDED.is_nc,
+        is_td = EXCLUDED.is_td,
+        is_so = EXCLUDED.is_so,
+        is_sd = EXCLUDED.is_sd,
+        is_pf = EXCLUDED.is_pf
+    `;
+  
     try {
-        await client.query(insert_query)
+      await client.query(query);
     } catch (error) {
-        console.error("Error inserting score into PostgreSQL database:", error)
-        console.log("Attempting to reconnect...")
-        await connectPostgres()
-        await insertScore(beatmapScore)
+      console.error("Error inserting scores into PostgreSQL database:", error);
+      console.log("Attempting to reconnect...");
+      await connectPostgres();
+      await insertScores(scores);
     }
-    return 
-}
+  }
 
 async function fetchScores() {
     let counter = 0
+    let beatmapScores = []
+    const batchSize = 100
     for (const beatmap_id of beatmapIds) {
         let beatmapScore;
         try {
@@ -87,7 +147,7 @@ async function fetchScores() {
         }
 
         if (!("error" in beatmapScore)) {
-            await insertScore(beatmapScore)
+            beatmapScores.push(beatmapScore)
         }
 
         counter++
@@ -97,6 +157,11 @@ async function fetchScores() {
             await runSql("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", [progress, percentage, workerData.user_id])
         } catch (error) {
             console.error("Error updating queue table in MySQL database:", error)
+        }
+
+        if (beatmapScores.length >= batchSize || counter === beatmapIds.length) {
+            await insertScores(beatmapScores)
+            beatmapScores = []
         }
     }
 
