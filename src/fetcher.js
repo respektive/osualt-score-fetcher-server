@@ -30,7 +30,7 @@ async function getBeatmaps() {
 }
 
 async function validToken() {
-    const response = await api.get("/beatmaps/75/scores/users/1023489");
+    const response = await api.get("/beatmaps/75/scores/users/2");
     let json = response.data;
     if ("error" in json || "authentication" in json) {
         return false;
