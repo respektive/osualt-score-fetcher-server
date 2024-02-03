@@ -120,7 +120,8 @@ async function insertScores(scores) {
         } catch (e) {
             console.error(
                 "Error inserting scores into PostgreSQL database:",
-                e
+                e,
+                query
             );
             retries++;
         } finally {

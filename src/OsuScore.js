@@ -7,18 +7,18 @@ class OsuScore {
         this.beatmap_id = beatmapScore["score"]["beatmap_id"]
         this.user_id = beatmapScore["score"]["user"]["id"]
         this.mods = mods
-        this.score = beatmapScore["score"]["total_score"]             
+        this.score = beatmapScore["score"]["total_score"]
         this.count300 = beatmapScore["score"]["statistics"]["great"] ?? 0
         this.count100 = beatmapScore["score"]["statistics"]["ok"] ?? 0
         this.count50 = beatmapScore["score"]["statistics"]["meh"] ?? 0
         this.countmiss = beatmapScore["score"]["statistics"]["miss"] ?? 0
         this.combo = beatmapScore["score"]["max_combo"]
-        this.perfect = Number(beatmapScore["score"]["legacy_perfect"])
+        this.perfect = Number(beatmapScore["score"]["legacy_perfect"] ?? 0)
         this.enabled_mods = getModsEnum(mods.map(x => x.acronym))
         this.date_played = beatmapScore["score"]["ended_at"]
         this.rank = beatmapScore["score"]["rank"]
         this.pp = beatmapScore["score"]["pp"] ?? 0
-        this.replay_available = Number(beatmapScore["score"]["replay"])
+        this.replay_available = Number(beatmapScore["score"]["replay"] ?? 0)
         this.is_hd = mods.map(x => x.acronym).includes("HD")
         this.is_hr = mods.map(x => x.acronym).includes("HR")
         this.is_dt = mods.map(x => x.acronym).includes("DT") || mods.map(x => x.acronym).includes("NC")

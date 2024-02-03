@@ -40,7 +40,7 @@ function getModsEnum(mods){
         mods.push("SD")
     }
     for(let i = 0; i < mods.length; i++){
-        n += mods_enum[mods[i]];
+        n += mods_enum[mods[i]] || 0;
     }
     return n;
 }
