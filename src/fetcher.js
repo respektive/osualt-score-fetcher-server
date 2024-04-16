@@ -138,6 +138,10 @@ async function fetchScores() {
 
     const batchSize = 100;
     for (const beatmap_id of beatmapIds) {
+        if (Number(workerData.skip) > counter) {
+            counter++;
+            continue;
+        }
         let beatmapScore;
         try {
             const response = await api.get(
