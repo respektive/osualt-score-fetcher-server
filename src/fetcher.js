@@ -100,6 +100,10 @@ async function insertScores(scores) {
             return `(${user_id}, ${beatmap_id}, ${scoreValue}, ${count300}, ${count100}, ${count50}, ${countmiss}, ${combo}, ${perfect}, ${enabled_mods}, '${date_played}', '${rank}', ${pp}, ${replay_available}, ${is_hd}, ${is_hr}, ${is_dt}, ${is_fl}, ${is_ht}, ${is_ez}, ${is_nf}, ${is_nc}, ${is_td}, ${is_so}, ${is_sd}, ${is_pf})`;
         })
         .join(",");
+    const scores_mods_values = osu_scores
+        .map((score) => `(${score.user_id}, ${score.beatmap_id}, '${JSON.stringify(score.mods)}', '${score.date_played}')`)
+        .join(",");
+
     const query = `
       INSERT INTO scores (user_id, beatmap_id, score, count300, count100, count50, countmiss, combo, perfect, enabled_mods, date_played, rank, pp, replay_available, is_hd, is_hr, is_dt, is_fl, is_ht, is_ez, is_nf, is_nc, is_td, is_so, is_sd, is_pf)
       VALUES ${values}
@@ -129,6 +133,12 @@ async function insertScores(scores) {
         is_sd = EXCLUDED.is_sd,
         is_pf = EXCLUDED.is_pf
     `;
+    const scores_mods_query = `
+      INSERT INTO scoresmods (user_id, beatmap_id, mods, date_played)
+      VALUES ${scores_mods_values}
+      ON CONFLICT ON CONSTRAINT scoresmods_pkey DO UPDATE SET 
+        mods = EXCLUDED.mods,
+        date_played = EXCLUDED.date_played`;
 
     const maxRetries = 3;
     let retries = 0;
@@ -140,6 +150,7 @@ async function insertScores(scores) {
         try {
             await batchClient.connect(); // Open a new connection
             const result = await batchClient.query(query);
+            await batchClient.query(scores_mods_query);
             insertedCount = result.rowCount;
             console.log(`${insertedCount} row(s) inserted`);
             beatmapScores.splice(0);
@@ -222,6 +233,7 @@ async function main() {
             await getMostPlayedBeatmaps();
         }
 
+        console.log("Fetching scores...");
         await fetchScores();
 
         // when everything is done fetching

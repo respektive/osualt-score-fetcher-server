@@ -6,7 +6,7 @@ class OsuScore {
 
         this.beatmap_id = beatmapScore["score"]["beatmap_id"]
         this.user_id = beatmapScore["score"]["user"]["id"]
-        this.mods = mods
+        this.mods = mods ?? []
         this.score = beatmapScore["score"]["legacy_total_score"] || beatmapScore["score"]["classic_total_score"] || beatmapScore["score"]["total_score"]
         this.count300 = beatmapScore["score"]["statistics"]["great"] ?? 0
         this.count100 = beatmapScore["score"]["statistics"]["ok"] ?? 0
