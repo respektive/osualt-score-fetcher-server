@@ -22,6 +22,33 @@ const runSql = util.promisify(connection.query).bind(connection);
 let beatmapScores = [];
 let beatmapIds = [];
 
+async function getMostPlayedBeatmaps(offset = 0) {
+    const response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
+    let beatmaps = response.data;
+
+    for (let i = 0; i < beatmaps.length; i++) {
+        if (["ranked", "approved", "loved"].includes(beatmaps[i].beatmap.status) && beatmaps[i].beatmap.mode == "osu") {
+            beatmapIds.push(beatmaps[i].beatmap_id);
+        }
+    }
+
+    let progress = `Getting most played beatmaps... (${beatmapIds.length}/${workerData.most_played_count})`;
+    await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [progress, workerData.user_id]);
+
+    if (beatmaps.length == 100) {
+        offset += 100;
+        await getMostPlayedBeatmaps(offset);
+    }
+
+    return;
+}
+
+async function getBeatmapsAmount() {
+    const response = await axios.get("https://osu.respektive.pw/amount");
+    const amount = response.data[0]["loved+ranked"];
+    return amount;
+}
+
 async function getBeatmaps() {
     const response = await axios.get("https://osu.respektive.pw/beatmaps");
     const beatmaps = response.data;
@@ -118,11 +145,7 @@ async function insertScores(scores) {
             beatmapScores.splice(0);
             break; // Success, exit the loop
         } catch (e) {
-            console.error(
-                "Error inserting scores into PostgreSQL database:",
-                e,
-                query
-            );
+            console.error("Error inserting scores into PostgreSQL database:", e, query);
             retries++;
         } finally {
             await batchClient.end(); // Close the connection
@@ -144,9 +167,7 @@ async function fetchScores() {
         }
         let beatmapScore;
         try {
-            const response = await api.get(
-                `/beatmaps/${beatmap_id}/scores/users/${workerData.user_id}`
-            );
+            const response = await api.get(`/beatmaps/${beatmap_id}/scores/users/${workerData.user_id}`);
             beatmapScore = response.data;
         } catch (error) {
             beatmapScore = { error: "null" };
@@ -160,21 +181,16 @@ async function fetchScores() {
         let progress = `Fetching Scores... (${counter}/${beatmapIds.length})`;
         let percentage = (counter / beatmapIds.length) * 100;
         try {
-            await runSql(
-                "UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?",
-                [progress, percentage, workerData.user_id]
-            );
+            await runSql("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", [
+                progress,
+                percentage,
+                workerData.user_id,
+            ]);
         } catch (error) {
-            console.error(
-                "Error updating queue table in MySQL database:",
-                error
-            );
+            console.error("Error updating queue table in MySQL database:", error);
         }
 
-        if (
-            beatmapScores.length >= batchSize ||
-            counter === beatmapIds.length
-        ) {
+        if (beatmapScores.length >= batchSize || counter === beatmapIds.length) {
             await insertScores(beatmapScores);
         }
     }
@@ -185,19 +201,31 @@ async function fetchScores() {
 async function main() {
     if (await validToken()) {
         let progress = "Getting Beatmap IDs...";
-        await runSql(
-            "insert into queue (user_id, username, progress) values (?, ?, ?)",
-            [workerData.user_id, workerData.username, progress]
-        );
+        await runSql("insert into queue (user_id, username, progress) values (?, ?, ?)", [
+            workerData.user_id,
+            workerData.username,
+            progress,
+        ]);
 
-        await getBeatmaps();
+        const beatmapsAmount = await getBeatmapsAmount();
+        const requestsNeeded = Math.ceil(workerData.most_played_count / 100) + workerData.most_played_count;
+
+        // old users don't seem to have their most played beatmaps list populated correctly
+        // see users like SiLviA for example who have a combined grade count of over 4500 but have about 3000 most played beatmaps
+        // https://osu.ppy.sh/users/409747
+        // this user_id cut off is an educated guess
+        if (requestsNeeded > beatmapsAmount || workerData.user_id < 4000000) {
+            console.log("Fetching all beatmaps...");
+            await getBeatmaps();
+        } else {
+            console.log("Fetching most played beatmaps...");
+            await getMostPlayedBeatmaps();
+        }
+
         await fetchScores();
 
         // when everything is done fetching
-        await runSql(
-            "INSERT INTO fetched_users (user_id, username) VALUES (?, ?)",
-            [workerData.user_id, workerData.username]
-        );
+        await runSql("INSERT INTO fetched_users (user_id, username) VALUES (?, ?)", [workerData.user_id, workerData.username]);
         await runSql("DELETE FROM queue WHERE user_id = ?", workerData.user_id);
 
         parentPort.postMessage("Done fetching.");
