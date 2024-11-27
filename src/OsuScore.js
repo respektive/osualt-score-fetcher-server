@@ -4,6 +4,9 @@ class OsuScore {
     constructor(beatmapScore) {
         const mods = beatmapScore["score"]["mods"]
 
+        this.maximum_statistics = beatmapScore["score"]["maximum_statistics"] ?? {}
+        this.statistics = beatmapScore["score"]["statistics"] ?? {}
+        
         this.beatmap_id = beatmapScore["score"]["beatmap_id"]
         this.user_id = beatmapScore["score"]["user"]["id"]
         this.mods = mods ?? []

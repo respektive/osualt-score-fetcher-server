@@ -101,7 +101,12 @@ async function insertScores(scores) {
         })
         .join(",");
     const scores_mods_values = osu_scores
-        .map((score) => `(${score.user_id}, ${score.beatmap_id}, '${JSON.stringify(score.mods)}', '${score.date_played}')`)
+        .map(
+            (score) =>
+                `(${score.user_id}, ${score.beatmap_id}, '${JSON.stringify(score.mods)}', '${
+                    score.date_played
+                }', '${JSON.stringify(score.statistics)}', '${JSON.stringify(score.maximum_statistics)}')`
+        )
         .join(",");
 
     const query = `
@@ -134,11 +139,13 @@ async function insertScores(scores) {
         is_pf = EXCLUDED.is_pf
     `;
     const scores_mods_query = `
-      INSERT INTO scoresmods (user_id, beatmap_id, mods, date_played)
+      INSERT INTO scoresmods (user_id, beatmap_id, mods, date_played, statistics, maximum_statistics)
       VALUES ${scores_mods_values}
       ON CONFLICT ON CONSTRAINT scoresmods_pkey DO UPDATE SET 
         mods = EXCLUDED.mods,
-        date_played = EXCLUDED.date_played`;
+        date_played = EXCLUDED.date_played,
+        statistics = EXCLUDED.statistics,
+        maximum_statistics = EXCLUDED.maximum_statistics`;
 
     const maxRetries = 3;
     let retries = 0;
@@ -156,7 +163,7 @@ async function insertScores(scores) {
             beatmapScores.splice(0);
             break; // Success, exit the loop
         } catch (e) {
-            console.error("Error inserting scores into PostgreSQL database:", e, query);
+            console.error("Error inserting scores into PostgreSQL database:", e, query, scores_mods_query);
             retries++;
         } finally {
             await batchClient.end(); // Close the connection
