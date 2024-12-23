@@ -75,12 +75,12 @@ app.get('/oauth', async function (req, res) {
   const fetched = await runSql("SELECT * FROM fetched_users WHERE user_id = ?", user_id)
   const fetching = await runSql("SELECT * FROM queue WHERE user_id = ?", user_id)
 
-  if (fetched.length > 0) {
-    console.log("User already fetched")
+  if (fetched.length > 0 && fetched[0].updated_at != null && fetched[0].updated_at > new Date(+new Date - 12096e5)) {
+    console.log("User already fetched recently")
   } else if (fetching.length > 0) {
     console.log("User already fetching")
   } else {
-    console.log("User not fetched")
+    console.log("User not fetched recently")
     const worker = new Worker(path.resolve(__dirname, 'fetcher.js'), { workerData: { access_token: token, user_id: user_id, username: me.username, most_played_count: me.beatmap_playcounts_count } })
 
     worker.on('message', (msg) => console.log(msg))
