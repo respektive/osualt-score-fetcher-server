@@ -23,25 +23,17 @@ let beatmapScores = [];
 let beatmapIds = [];
 
 async function getMostPlayedBeatmaps(offset = 0) {
-    let beatmaps;
-    try {
-        const response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
-        beatmaps = response.data;
+    const response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
+    let beatmaps = response.data;
 
-        for (let i = 0; i < beatmaps.length; i++) {
-            if (["ranked", "approved", "loved"].includes(beatmaps[i].beatmap?.status) && beatmaps[i].beatmap?.mode == "osu") {
-                beatmapIds.push(beatmaps[i].beatmap_id);
-            }
+    for (let i = 0; i < beatmaps.length; i++) {
+        if (["ranked", "approved", "loved"].includes(beatmaps[i].beatmap?.status) && beatmaps[i].beatmap?.mode == "osu") {
+            beatmapIds.push(beatmaps[i].beatmap_id);
         }
-
-        let progress = `Getting most played beatmaps... (${beatmapIds.length}/${workerData.most_played_count})`;
-        await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [progress, workerData.user_id]);
-
-        return;
-    } catch (error) {
-        console.log(error);
-        await getMostPlayedBeatmaps(offset);
     }
+
+    let progress = `Getting most played beatmaps... (${beatmapIds.length}/${workerData.most_played_count})`;
+    await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [progress, workerData.user_id]);
 
     if (beatmaps.length == 100) {
         offset += 100;
@@ -247,7 +239,12 @@ async function main() {
             await getBeatmaps();
         } else {
             console.log("Fetching most played beatmaps...");
+            try {
             await getMostPlayedBeatmaps();
+            }  catch (error) {
+                console.log(error);
+                await getMostPlayedBeatmaps();
+            }
         }
 
         console.log("Fetching scores...");
