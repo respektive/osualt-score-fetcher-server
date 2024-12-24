@@ -221,10 +221,9 @@ async function main() {
         await runSql("delete from fetched_users where user_id = ?", [workerData.user_id]);
 
         let progress = "Getting Beatmap IDs...";
-        await runSql("insert into queue (user_id, username, progress) values (?, ?, ?)", [
-            workerData.user_id,
-            workerData.username,
+        await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [
             progress,
+            workerData.user_id,
         ]);
 
         const beatmapsAmount = await getBeatmapsAmount();

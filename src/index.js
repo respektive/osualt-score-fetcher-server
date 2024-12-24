@@ -37,7 +37,14 @@ function processQueue() {
   })
 }
 
-function addToQueue(user) {
+async function addToQueue(user) {
+  const progress = "Waiting in queue...";
+  await runSql("insert into queue (user_id, username, progress) values (?, ?, ?)", [
+    user.user_id,
+    user.username,
+    progress,
+  ]);
+
   queue.push(user);
   processQueue();
 }
@@ -106,7 +113,7 @@ app.get('/oauth', async function (req, res) {
 
   if (fetched.length > 0 && fetched[0].updated_at != null && fetched[0].updated_at > new Date(+new Date - 12096e5)) {
     console.log("User already fetched recently")
-  } else if (fetching.length > 0) {
+  } else if (fetching.length > 0 || queue.find(x => x.user_id == user_id)) {
     console.log("User already fetching")
   } else {
     console.log("User not fetched recently")
