@@ -13,6 +13,35 @@ const runSql = util.promisify(connection.query).bind(connection)
 const app = express()
 const port = config.PORT
 
+
+const MAX_ACTIVE = 2;
+let currentActive = 0;
+
+const queue = [];
+
+function processQueue() {
+  if (currentActive < MAX_ACTIVE && queue.length > 0) {
+    const [user] = queue.splice(0, 1);
+    currentActive++;
+
+    const worker = new Worker(path.resolve(__dirname, 'fetcher.js'), { workerData: user })
+
+    worker.on('message', (msg) => console.log(msg))
+    worker.on('error', (err) => console.error(err))
+    worker.on('exit', (code) => {
+      currentActive = Math.max(0, currentActive - 1)
+      processQueue();
+      if (code !== 0)
+        console.log(`Worker stopped with exit code ${code}`)
+    })
+  }
+}
+
+function addToQueue(user) {
+  queue.push(user);
+  processQueue();
+}
+
 async function getToken(code) {
   let res = await fetch("https://osu.ppy.sh/oauth/token", {
     method: 'post',
@@ -81,13 +110,13 @@ app.get('/oauth', async function (req, res) {
     console.log("User already fetching")
   } else {
     console.log("User not fetched recently")
-    const worker = new Worker(path.resolve(__dirname, 'fetcher.js'), { workerData: { access_token: token, user_id: user_id, username: me.username, most_played_count: me.beatmap_playcounts_count } })
-
-    worker.on('message', (msg) => console.log(msg))
-    worker.on('error', (err) => console.error(err))
-    worker.on('exit', (code) => {
-      if (code !== 0)
-        console.log(`Worker stopped with exit code ${code}`)
+    
+    addToQueue({
+      access_token: token, 
+      user_id: user_id, 
+      username: me.username,
+       most_played_count: 
+       me.beatmap_playcounts_count
     })
   }
 
