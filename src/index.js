@@ -13,8 +13,7 @@ const runSql = util.promisify(connection.query).bind(connection)
 const app = express()
 const port = config.PORT
 
-
-const MAX_ACTIVE = 2;
+const MAX_ACTIVE = config.MAX_ACTIVE || 2;
 let currentActive = 0;
 
 const queue = [];
