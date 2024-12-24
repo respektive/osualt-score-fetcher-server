@@ -20,21 +20,22 @@ let currentActive = 0;
 const queue = [];
 
 function processQueue() {
-  if (currentActive < MAX_ACTIVE && queue.length > 0) {
-    const [user] = queue.splice(0, 1);
-    currentActive++;
+  if (currentActive >= MAX_ACTIVE || queue.length == 0)
+    return;
 
-    const worker = new Worker(path.resolve(__dirname, 'fetcher.js'), { workerData: user })
+  const [user] = queue.splice(0, 1);
+  currentActive++;
 
-    worker.on('message', (msg) => console.log(msg))
-    worker.on('error', (err) => console.error(err))
-    worker.on('exit', (code) => {
-      currentActive = Math.max(0, currentActive - 1)
-      processQueue();
-      if (code !== 0)
-        console.log(`Worker stopped with exit code ${code}`)
-    })
-  }
+  const worker = new Worker(path.resolve(__dirname, 'fetcher.js'), { workerData: user })
+
+  worker.on('message', (msg) => console.log(msg))
+  worker.on('error', (err) => console.error(err))
+  worker.on('exit', (code) => {
+    currentActive = Math.max(0, currentActive - 1)
+    processQueue();
+    if (code !== 0)
+      console.log(`Worker stopped with exit code ${code}`)
+  })
 }
 
 function addToQueue(user) {
