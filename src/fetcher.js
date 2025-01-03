@@ -56,8 +56,8 @@ async function getBeatmaps() {
     return;
 }
 
-async function validToken() {
-    const response = await api.get("/beatmaps/75/scores/users/2");
+async function validToken(user_id) {
+    const response = await api.get(`/users/${user_id}`);
     let json = response.data;
     if ("error" in json || "authentication" in json) {
         return false;
@@ -217,14 +217,11 @@ async function fetchScores() {
 }
 
 async function main() {
-    if (await validToken()) {
+    if (await validToken(workerData.user_id)) {
         await runSql("delete from fetched_users where user_id = ?", [workerData.user_id]);
 
         let progress = "Getting Beatmap IDs...";
-        await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [
-            progress,
-            workerData.user_id,
-        ]);
+        await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [progress, workerData.user_id]);
 
         const beatmapsAmount = await getBeatmapsAmount();
         const requestsNeeded = Math.ceil(workerData.most_played_count / 100) + workerData.most_played_count;
@@ -239,8 +236,8 @@ async function main() {
         } else {
             console.log("Fetching most played beatmaps...");
             try {
-            await getMostPlayedBeatmaps();
-            }  catch (error) {
+                await getMostPlayedBeatmaps();
+            } catch (error) {
                 console.log(error);
                 await getMostPlayedBeatmaps();
             }
