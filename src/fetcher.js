@@ -22,8 +22,18 @@ const runSql = util.promisify(connection.query).bind(connection);
 let beatmapScores = [];
 let beatmapIds = [];
 
-async function getMostPlayedBeatmaps(offset = 0) {
-    const response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
+async function getMostPlayedBeatmaps(offset = 0, retries = 0) {
+    let response;
+    try {
+        response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
+    } catch (error) {
+        console.log(error);
+        if (retries < 3) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await getMostPlayedBeatmaps(offset, retries + 1);
+        }
+        return;
+    }
     let beatmaps = response.data;
 
     for (let i = 0; i < beatmaps.length; i++) {
