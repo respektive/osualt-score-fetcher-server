@@ -29,7 +29,7 @@ async function getMostPlayedBeatmaps(offset = 0, retries = 0) {
     } catch (error) {
         console.log(error);
         if (retries < 3) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, retries)));
             await getMostPlayedBeatmaps(offset, retries + 1);
         }
         return;
