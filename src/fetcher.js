@@ -6,7 +6,8 @@ const axios = require("axios").default;
 const config = require("../config.json");
 const OsuScore = require("./OsuScore.js");
 
-const access_token = workerData.access_token;
+const token_data = JSON.parse(workerData.data);
+let access_token = token_data.access_token;
 
 const api = axios.create({
     baseURL: "https://osu.ppy.sh/api/v2",
@@ -67,12 +68,40 @@ async function getBeatmaps() {
 }
 
 async function validToken(user_id) {
-    const response = await api.get(`/users/${user_id}`);
+    let response;
+    try {
+        response = await api.get(`/users/${user_id}`);
+    } catch (error) {
+        console.log(error);
+        await refreshToken();
+        response = await api.get(`/users/${user_id}`);
+    }
     let json = response.data;
     if ("error" in json || "authentication" in json) {
+        console.log("Invalid token");
         return false;
     }
+
+    console.log("Valid token");
     return true;
+}
+
+async function refreshToken() {
+    const response = await axios.get("https://osu.ppy.sh/oauth/token", {
+        method: "post",
+        headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+        },
+        data: {
+            grant_type: "refresh_token",
+            client_id: 37221,
+            client_secret: config.CLIENT_SECRET,
+            refresh_token: token_data.refresh_token,
+        },
+    });
+    access_token = response.data.access_token;
+    return response;
 }
 
 async function insertScores(scores) {
@@ -209,9 +238,10 @@ async function fetchScores() {
         let progress = `Fetching Scores... (${counter}/${beatmapIds.length})`;
         let percentage = (counter / beatmapIds.length) * 100;
         try {
-            await runSql("UPDATE queue SET progress = ?, percentage = ? WHERE user_id = ?", [
+            await runSql("UPDATE queue SET progress = ?, percentage = ?, skip = ? WHERE user_id = ?", [
                 progress,
                 percentage,
+                counter,
                 workerData.user_id,
             ]);
         } catch (error) {
