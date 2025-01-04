@@ -45,7 +45,15 @@ async function getMostPlayedBeatmaps(offset = 0, retries = 0) {
     }
 
     let progress = `Getting most played beatmaps... (${beatmapIds.length}/${most_played_count})`;
-    await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [progress, workerData.user_id]);
+    let data = {
+        beatmap_ids: beatmapIds,
+        ...token_data,
+    };
+    await runSql("UPDATE queue SET progress = ?, data = ? WHERE user_id = ?", [
+        progress,
+        JSON.stringify(data),
+        workerData.user_id,
+    ]);
 
     if (beatmaps.length == 100) {
         offset += 100;
@@ -267,20 +275,24 @@ async function main() {
         const beatmapsAmount = await getBeatmapsAmount();
         const requestsNeeded = Math.ceil(most_played_count / 100) + most_played_count;
 
-        // old users don't seem to have their most played beatmaps list populated correctly
-        // see users like SiLviA for example who have a combined grade count of over 4500 but have about 3000 most played beatmaps
-        // https://osu.ppy.sh/users/409747
-        // this user_id cut off is an educated guess
-        if (requestsNeeded > beatmapsAmount || workerData.user_id < 4000000) {
-            console.log("Fetching all beatmaps...");
-            await getBeatmaps();
+        if (token_data.beatmap_ids) {
+            beatmapIds = token_data.beatmap_ids;
         } else {
-            console.log("Fetching most played beatmaps...");
-            try {
-                await getMostPlayedBeatmaps();
-            } catch (error) {
-                console.log(error);
-                await getMostPlayedBeatmaps();
+            // old users don't seem to have their most played beatmaps list populated correctly
+            // see users like SiLviA for example who have a combined grade count of over 4500 but have about 3000 most played beatmaps
+            // https://osu.ppy.sh/users/409747
+            // this user_id cut off is an educated guess
+            if (requestsNeeded > beatmapsAmount || workerData.user_id < 4000000) {
+                console.log("Fetching all beatmaps...");
+                await getBeatmaps();
+            } else {
+                console.log("Fetching most played beatmaps...");
+                try {
+                    await getMostPlayedBeatmaps();
+                } catch (error) {
+                    console.log(error);
+                    await getMostPlayedBeatmaps();
+                }
             }
         }
 
