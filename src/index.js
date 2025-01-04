@@ -27,7 +27,7 @@ async function resumeQueue() {
 }
 
 async function processQueue() {
-    const queue = await runSql("SELECT * FROM queue WHERE progress = 'Waiting in queue...'");
+    const queue = await runSql("SELECT * FROM queue WHERE progress = 'Waiting in queue...' ORDER BY date_added ASC");
 
     if (currentActive >= MAX_ACTIVE || queue.length == 0) return;
 
