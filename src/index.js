@@ -134,7 +134,6 @@ app.get("/oauth", async function (req, res) {
             token_data,
             user_id: user_id,
             username: me.username,
-            most_played_count: me.beatmap_playcounts_count,
         });
     }
 
