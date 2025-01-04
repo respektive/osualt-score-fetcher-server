@@ -147,7 +147,7 @@ app.get("/oauth", async function (req, res) {
 });
 
 app.get("/current", async function (req, res) {
-    const current = await runSql("SELECT user_id, username, progress, percentage FROM queue");
+    const current = await runSql("SELECT user_id, username, progress, percentage, date_added FROM queue");
     res.send(current);
 });
 
