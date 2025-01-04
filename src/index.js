@@ -102,18 +102,14 @@ app.use(
 );
 
 app.get("/oauth", async function (req, res) {
-    let code = "";
-    let token = "";
-    let me = "";
-    let user_id = "";
     if (!req.query.code) {
         res.send("No code received");
         return;
     }
-    code = req.query.code;
-    token_data = await getToken(code).catch();
-    me = await getUserID(token_data.access_token).catch();
-    user_id = me.id;
+    let code = req.query.code;
+    let token_data = await getToken(code).catch();
+    let me = await getUserID(token_data.access_token).catch();
+    let user_id = me.id;
 
     if (!token_data || !user_id) {
         res.send("Failed to get token");
@@ -137,7 +133,7 @@ app.get("/oauth", async function (req, res) {
         });
     }
 
-    console.log(token);
+    console.log(token_data);
 
     res.redirect("https://osualt.respektive.pw/status");
 
