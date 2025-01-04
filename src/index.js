@@ -20,7 +20,9 @@ async function resumeQueue() {
     const queue = await runSql("SELECT * FROM queue WHERE progress != 'Waiting in queue...'");
 
     for (const user of queue) {
+        console.log(`Resuming ${user.username}...`);
         addToQueue(user);
+        await new Promise((r) => setTimeout(r, 2000));
     }
 }
 
