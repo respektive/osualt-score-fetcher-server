@@ -295,6 +295,8 @@ async function main() {
     } else {
         parentPort.postMessage("Invalid Token.");
     }
+
+    process.exit();
 }
 
 main();
