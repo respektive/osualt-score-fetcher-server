@@ -49,7 +49,7 @@ async function addToQueue(user) {
     const progress = "Waiting in queue...";
     await runSql(
         "insert into queue (user_id, username, progress, data) values (?, ?, ?, ?) ON DUPLICATE KEY UPDATE progress = ?",
-        [user.user_id, user.username, progress, JSON.stringify(user.token_data), progress]
+        [user.user_id, user.username, progress, JSON.stringify(user.data), progress]
     );
 
     processQueue();
@@ -129,7 +129,10 @@ app.get("/oauth", async function (req, res) {
         console.log("User not fetched recently");
 
         addToQueue({
-            token_data,
+            data: {
+                most_played_count: me.beatmap_playcounts_count,
+                ...token_data,
+            },
             user_id: user_id,
             username: me.username,
         });
