@@ -267,6 +267,11 @@ async function fetchScores() {
 
 async function main() {
     if (await validToken(workerData.user_id)) {
+        // refresh token if user waited in queue for more than 12 hours, just to be sure the token doesn't expire mid-fetch
+        if (workerData.date_added !== null && workerData.date_added < new Date(Date.now() - 1000 * 60 * 60 * 12)) {
+            await refreshToken();
+        }
+
         await runSql("delete from fetched_users where user_id = ?", [workerData.user_id]);
 
         let progress = "Getting Beatmap IDs...";
