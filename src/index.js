@@ -19,6 +19,12 @@ let currentActive = 0;
 async function resumeQueue() {
     const queue = await runSql("SELECT * FROM queue WHERE progress != 'Waiting in queue...'");
 
+    // if there are no users mid-fetch to resume then process the users waiting in queue
+    if (queue.length == 0) {
+        processQueue();
+        return;
+    }
+
     for (const user of queue) {
         console.log(`Resuming ${user.username}...`);
         addToQueue(user);
