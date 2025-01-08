@@ -25,10 +25,34 @@ let beatmapScores = [];
 let beatmapIds = [];
 
 async function getMostPlayedBeatmaps(offset = 0, retries = 0) {
+    const osuAPIStartTime = process.hrtime();
     let response;
     try {
         response = await api.get(`/users/${workerData.user_id}/beatmapsets/most_played?limit=100&offset=${offset}`);
+        const osuAPIEndTime = process.hrtime(osuAPIStartTime);
+        const osuAPIDuration = osuAPIEndTime[0] + osuAPIEndTime[1] / 1e9;
+
+        parentPort.postMessage({
+            type: "osu_metrics",
+            data: {
+                osuAPIDuration: osuAPIDuration,
+                route: "/users/:user_id/beatmapsets/most_played",
+                statusCode: response.status,
+            },
+        });
     } catch (error) {
+        const osuAPIEndTime = process.hrtime(osuAPIStartTime);
+        const osuAPIDuration = osuAPIEndTime[0] + osuAPIEndTime[1] / 1e9;
+
+        parentPort.postMessage({
+            type: "osu_metrics",
+            data: {
+                osuAPIDuration: osuAPIDuration,
+                route: "/users/:user_id/beatmapsets/most_played",
+                statusCode: error.response?.status || 500,
+            },
+        });
+
         console.log(error);
         if (retries < 3) {
             await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, retries)));
@@ -203,9 +227,23 @@ async function insertScores(scores) {
         const batchClient = new Client(config.POSTGRES);
 
         try {
+            const insertStartTime = process.hrtime();
+
             await batchClient.connect(); // Open a new connection
             const result = await batchClient.query(query);
             await batchClient.query(scores_mods_query);
+
+            const insertEndTime = process.hrtime(insertStartTime);
+            const duration = insertEndTime[0] + insertEndTime[1] / 1e9;
+
+            parentPort.postMessage({
+                type: "db_metrics",
+                data: {
+                    dbQueryDuration: duration,
+                    query: "insertScores",
+                },
+            });
+
             insertedCount = result.rowCount;
             console.log(`${insertedCount} row(s) inserted`);
             beatmapScores.splice(0);
@@ -231,12 +269,35 @@ async function fetchScores() {
             counter++;
             continue;
         }
+        const osuAPIStartTime = process.hrtime();
         let beatmapScore;
         try {
             const response = await api.get(`/beatmaps/${beatmap_id}/scores/users/${workerData.user_id}`);
             beatmapScore = response.data;
+
+            const osuAPIEndTime = process.hrtime(osuAPIStartTime);
+            const osuAPIDuration = osuAPIEndTime[0] + osuAPIEndTime[1] / 1e9;
+
+            parentPort.postMessage({
+                type: "osu_metrics",
+                data: {
+                    osuAPIDuration: osuAPIDuration,
+                    route: "/beatmaps/:beatmap_id/scores/users/:user_id",
+                    statusCode: response.status,
+                },
+            });
         } catch (error) {
             beatmapScore = { error: "null" };
+            const osuAPIEndTime = process.hrtime(osuAPIStartTime);
+            const osuAPIDuration = osuAPIEndTime[0] + osuAPIEndTime[1] / 1e9;
+            parentPort.postMessage({
+                type: "osu_metrics",
+                data: {
+                    osuAPIDuration: osuAPIDuration,
+                    route: "/beatmaps/:beatmap_id/scores/users/:user_id",
+                    statusCode: error.response?.status || 500,
+                },
+            });
         }
 
         if (!("error" in beatmapScore)) {

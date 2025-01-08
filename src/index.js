@@ -7,6 +7,36 @@ const mysql = require("mysql");
 const util = require("util");
 const config = require("../config.json");
 
+const client = require("prom-client");
+
+const dbQueryDurationHistogram = new client.Histogram({
+    name: "score_fetcher_db_query_duration_histogram",
+    help: "Histogram of database query durations in seconds",
+    labelNames: ["query"],
+});
+
+const osuApiRequestDurationHistogram = new client.Histogram({
+    name: "score_fetcher_osu_api_request_duration_histogram",
+    help: "Histogram of osu api request durations in seconds",
+    labelNames: ["route", "status_code"],
+});
+
+function observeDbQueryDuration(duration, query) {
+    dbQueryDurationHistogram.labels(query).observe(duration);
+}
+
+function observeOsuApiRequestDuration(duration, route, statusCode) {
+    osuApiRequestDurationHistogram.labels(route, statusCode).observe(duration);
+}
+
+const collectDefaultMetrics = client.collectDefaultMetrics;
+const Registry = client.Registry;
+const register = new Registry();
+collectDefaultMetrics({ register });
+
+register.registerMetric(dbQueryDurationHistogram);
+register.registerMetric(osuApiRequestDurationHistogram);
+
 const connection = mysql.createPool(config.MYSQL);
 const runSql = util.promisify(connection.query).bind(connection);
 
@@ -42,7 +72,15 @@ async function processQueue() {
 
     const worker = new Worker(path.resolve(__dirname, "fetcher.js"), { workerData: user });
 
-    worker.on("message", (msg) => console.log(msg));
+    worker.on("message", (msg) => {
+        if (msg.type == "osu_metrics") {
+            observeOsuApiRequestDuration(msg.data.osuAPIDuration, msg.data.route, msg.data.statusCode);
+        } else if (msg.type == "db_metrics") {
+            observeDbQueryDuration(msg.data.dbQueryDuration, msg.data.query);
+        } else {
+            console.log(msg);
+        }
+    });
     worker.on("error", (err) => console.error(err));
     worker.on("exit", (code) => {
         currentActive = Math.max(0, currentActive - 1);
@@ -164,6 +202,11 @@ app.get("/fetched", async function (req, res) {
 
 app.get("/", async function (req, res) {
     res.redirect("https://osualt.respektive.pw/");
+});
+
+app.get("/metrics", async (req, res) => {
+    res.set("Content-Type", register.contentType);
+    res.send(await register.metrics());
 });
 
 app.listen(port, () => {
