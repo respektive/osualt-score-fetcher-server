@@ -21,6 +21,16 @@ const osuApiRequestDurationHistogram = new client.Histogram({
     labelNames: ["route", "status_code"],
 });
 
+const queueWaitingGauge = new client.Gauge({
+    name: "score_fetcher_queue_waiting_gauge",
+    help: "The number of users waiting in the queue",
+});
+
+const queueFetchingGauge = new client.Gauge({
+    name: "score_fetcher_queue_fetching_gauge",
+    help: "The number of users currently being fetched",
+});
+
 function observeDbQueryDuration(duration, query) {
     dbQueryDurationHistogram.labels(query).observe(duration);
 }
@@ -36,6 +46,8 @@ collectDefaultMetrics({ register });
 
 register.registerMetric(dbQueryDurationHistogram);
 register.registerMetric(osuApiRequestDurationHistogram);
+register.registerMetric(queueWaitingGauge);
+register.registerMetric(queueFetchingGauge);
 
 const connection = mysql.createPool(config.MYSQL);
 const runSql = util.promisify(connection.query).bind(connection);
@@ -70,6 +82,9 @@ async function processQueue() {
     const [user] = queue.splice(0, 1);
     currentActive++;
 
+    queueWaitingGauge.set(queue.length);
+    queueFetchingGauge.set(currentActive);
+
     const worker = new Worker(path.resolve(__dirname, "fetcher.js"), { workerData: user });
 
     worker.on("message", (msg) => {
@@ -84,6 +99,7 @@ async function processQueue() {
     worker.on("error", (err) => console.error(err));
     worker.on("exit", (code) => {
         currentActive = Math.max(0, currentActive - 1);
+        queueFetchingGauge.set(currentActive);
         processQueue();
         if (code !== 0) console.log(`Worker stopped with exit code ${code}`);
     });
