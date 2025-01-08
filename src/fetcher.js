@@ -265,7 +265,8 @@ async function fetchScores() {
 
     const batchSize = 100;
     for (const beatmap_id of beatmapIds) {
-        if (Number(workerData.skip) > counter) {
+        // subtract batchSize from skip count to account for scores that have not been inserted due to process crashing before inserting
+        if (Math.max(0, Number(workerData.skip) - batchSize) > counter) {
             counter++;
             continue;
         }
