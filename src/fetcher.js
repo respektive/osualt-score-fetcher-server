@@ -53,7 +53,7 @@ async function getMostPlayedBeatmaps(offset = 0, retries = 0) {
             },
         });
 
-        console.log(error);
+        console.error(error);
         if (retries < 3) {
             await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, retries)));
             await getMostPlayedBeatmaps(offset, retries + 1);
@@ -106,8 +106,14 @@ async function validToken(user_id) {
         response = await api.get(`/users/${user_id}`);
     } catch (error) {
         console.error(error);
+        console.log("trying to refresh token");
         await refreshToken();
-        response = await api.get(`/users/${user_id}`);
+        try {
+            response = await api.get(`/users/${user_id}`);
+        } catch (error) {
+            console.error(error);
+            return false;
+        }
     }
     let json = response.data;
     if ("error" in json || "authentication" in json) {
@@ -122,12 +128,21 @@ async function validToken(user_id) {
 async function refreshToken() {
     let response;
     try {
-        response = await axios.post("https://osu.ppy.sh/oauth/token", {
-            grant_type: "refresh_token",
-            client_id: 37221,
-            client_secret: config.CLIENT_SECRET,
-            refresh_token: token_data.refresh_token,
+        const res = await fetch("https://osu.ppy.sh/oauth/token", {
+            method: "post",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                grant_type: "refresh_token",
+                client_id: 37221,
+                client_secret: config.CLIENT_SECRET,
+                refresh_token: token_data.refresh_token,
+            }),
         });
+
+        response = await res.json();
     } catch (error) {
         console.error(error);
         console.log("Failed to refresh token");
@@ -135,7 +150,9 @@ async function refreshToken() {
         // todo: actually handle this
         process.exit();
     }
-    access_token = response.data.access_token;
+    console.log("Refreshed token");
+    console.log(response);
+    access_token = response.access_token;
     return response;
 }
 
