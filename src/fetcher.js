@@ -105,7 +105,7 @@ async function validToken(user_id) {
     try {
         response = await api.get(`/users/${user_id}`);
     } catch (error) {
-        console.log(error);
+        console.error(error);
         await refreshToken();
         response = await api.get(`/users/${user_id}`);
     }
@@ -129,7 +129,7 @@ async function refreshToken() {
             refresh_token: token_data.refresh_token,
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         console.log("Failed to refresh token");
 
         // todo: actually handle this
@@ -364,7 +364,7 @@ async function main() {
                 try {
                     await getMostPlayedBeatmaps();
                 } catch (error) {
-                    console.log(error);
+                    console.error(error);
                     await getMostPlayedBeatmaps();
                 }
             }
