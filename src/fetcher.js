@@ -120,16 +120,6 @@ async function validToken(user_id) {
 }
 
 async function refreshToken() {
-    const response = await axios.get("https://osu.ppy.sh/oauth/token", {
-        method: "post",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-        },
-        data: {
-            grant_type: "refresh_token",
-            client_id: 37221,
-            client_secret: config.CLIENT_SECRET,
             refresh_token: token_data.refresh_token,
         },
     });
@@ -328,14 +318,19 @@ async function fetchScores() {
 }
 
 async function main() {
+    console.log("Starting fetch for user:", workerData.user_id);
     if (await validToken(workerData.user_id)) {
+        console.log("Valid Token");
         // refresh token if user waited in queue for more than 12 hours, just to be sure the token doesn't expire mid-fetch
         if (workerData.date_added !== null && workerData.date_added < new Date(Date.now() - 1000 * 60 * 60 * 12)) {
+            console.log("refreshing token");
             await refreshToken();
         }
 
+        console.log("deleting from fetched users");
         await runSql("delete from fetched_users where user_id = ?", [workerData.user_id]);
 
+        console.log("updating progress");
         let progress = "Getting Beatmap IDs...";
         await runSql("UPDATE queue SET progress = ? WHERE user_id = ?", [progress, workerData.user_id]);
 
