@@ -120,9 +120,28 @@ async function validToken(user_id) {
 }
 
 async function refreshToken() {
-            refresh_token: token_data.refresh_token,
-        },
-    });
+    let response;
+    try {
+        response = await axios.post("https://osu.ppy.sh/oauth/token", {
+            method: "post",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            data: {
+                grant_type: "refresh_token",
+                client_id: 37221,
+                client_secret: config.CLIENT_SECRET,
+                refresh_token: token_data.refresh_token,
+            },
+        });
+    } catch (error) {
+        console.log(error);
+        console.log("Failed to refresh token");
+
+        // todo: actually handle this
+        process.exit();
+    }
     access_token = response.data.access_token;
     return response;
 }
