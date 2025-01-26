@@ -123,17 +123,10 @@ async function refreshToken() {
     let response;
     try {
         response = await axios.post("https://osu.ppy.sh/oauth/token", {
-            method: "post",
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-            data: {
-                grant_type: "refresh_token",
-                client_id: 37221,
-                client_secret: config.CLIENT_SECRET,
-                refresh_token: token_data.refresh_token,
-            },
+            grant_type: "refresh_token",
+            client_id: 37221,
+            client_secret: config.CLIENT_SECRET,
+            refresh_token: token_data.refresh_token,
         });
     } catch (error) {
         console.log(error);
