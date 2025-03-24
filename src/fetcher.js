@@ -268,7 +268,7 @@ async function insertScores(scores) {
             beatmapScores.splice(0);
             break; // Success, exit the loop
         } catch (e) {
-            console.error(`${workerData.user_id}: Error inserting scores into PostgreSQL database:`, e, query, scores_mods_query);
+            console.error(`${workerData.user_id}: Error inserting scores into PostgreSQL database:`, e);
             retries++;
         } finally {
             await batchClient.end(); // Close the connection
