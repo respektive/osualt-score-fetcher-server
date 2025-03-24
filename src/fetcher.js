@@ -238,7 +238,7 @@ async function insertScores(scores) {
         statistics = EXCLUDED.statistics,
         maximum_statistics = EXCLUDED.maximum_statistics`;
 
-    const maxRetries = 3;
+    const maxRetries = 5;
     let retries = 0;
     let insertedCount = 0;
 
@@ -264,19 +264,22 @@ async function insertScores(scores) {
             });
 
             insertedCount = result.rowCount;
-            console.log(`${insertedCount} row(s) inserted`);
+            console.log(`${workerData.user_id}: ${insertedCount} row(s) inserted`);
             beatmapScores.splice(0);
             break; // Success, exit the loop
         } catch (e) {
-            console.error("Error inserting scores into PostgreSQL database:", e, query, scores_mods_query);
+            console.error(`${workerData.user_id}: Error inserting scores into PostgreSQL database:`, e, query, scores_mods_query);
             retries++;
         } finally {
             await batchClient.end(); // Close the connection
         }
 
         // Wait before retrying
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, retries * 2000));
     }
+
+    console.log(`retries: ${retries}`);
+    return;
 }
 
 async function fetchScores() {
