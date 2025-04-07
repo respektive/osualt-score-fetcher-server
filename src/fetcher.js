@@ -148,6 +148,7 @@ async function refreshToken() {
         console.log("Failed to refresh token");
 
         // todo: actually handle this
+        await new Promise((r) => setTimeout(r, 1000 * 60 * 15));
         process.exit();
     }
     console.log("Refreshed token");
