@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const config = require("../config.json");
 
 const db = require("./db.js");
@@ -40,14 +41,15 @@ async function checkFetchingStatusForUser(user_id) {
 async function getFetchedUsers() {
     try {
         const result = await db.query(
-            "SELECT user_id, username, registrations.lchg_time FROM registrations LEFT JOIN userlive USING (user_id) WHERE is_synced = true"
+            "SELECT user_id, username, registrations.lchg_time, registrationdate FROM registrations LEFT JOIN userlive USING (user_id) WHERE is_synced = true"
         );
 
         const fetched_users = result.rows.map((row) => {
             return {
                 user_id: row.user_id,
-                username: row.username,
+                username: row.username || "🔍❓🤕",
                 updated_at: row.lchg_time,
+                registration_date: row.registrationdate,
             };
         });
 
@@ -70,8 +72,8 @@ async function getFetchingUsers() {
             .map((row) => {
                 return {
                     user_id: row.user_id,
-                    username: row.username,
-                    progress: `${row.data.fetched}/${row.data.total}`,
+                    username: row.username || "🔍❓🤕",
+                    progress: `Fetching scores... (${row.data.fetched}/${row.data.total})`,
                     percentage: (row.data.fetched / row.data.total) * 100,
                 };
             });
@@ -103,7 +105,7 @@ async function getToken(code) {
             grant_type: "authorization_code",
             client_id: 37221,
             client_secret: config.CLIENT_SECRET,
-            redirect_uri: "http://localhost:21528/oauth",
+            redirect_uri: `${config.BASE_URL}/api/oauth`,
             code: code,
         }),
     }).then((response) => {
@@ -140,7 +142,9 @@ app.use(
     })
 );
 
-app.get("/oauth", async function (req, res) {
+app.use(express.static(path.join(__dirname, "frontend/build")));
+
+app.get("/api/oauth", async function (req, res) {
     if (!req.query.code) {
         res.send("No code received");
         return;
@@ -173,21 +177,21 @@ app.get("/oauth", async function (req, res) {
         //await addToQueue(token_data, user_id);
     }
 
-    res.redirect("https://osualt.respektive.pw/status");
+    res.redirect(`${config.BASE_URL}/status`);
 });
 
-app.get("/current", async function (req, res) {
+app.get("/api/current", async function (req, res) {
     const fetchngUsers = await getFetchingUsers();
     res.send(fetchngUsers);
 });
 
-app.get("/fetched", async function (req, res) {
+app.get("/api/fetched", async function (req, res) {
     const fetchedUsers = await getFetchedUsers();
     res.send(fetchedUsers);
 });
 
-app.get("/", async function (req, res) {
-    res.redirect("https://osualt.respektive.pw/");
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "frontend/build/index.html"));
 });
 
 app.listen(port, () => {
