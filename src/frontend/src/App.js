@@ -6,7 +6,7 @@ import "@fontsource/comfortaa/300.css";
 import "@fontsource/comfortaa/400.css";
 import "@fontsource/comfortaa/500.css";
 import "@fontsource/comfortaa/700.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 const mainTheme = createTheme({
     palette: {
@@ -31,6 +31,8 @@ function App() {
                 <Routes>
                     <Route index element={<Home />} />
                     <Route path="status" element={<Status />} />
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </BrowserRouter>
         </ThemeProvider>
