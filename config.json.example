@@ -1,14 +1,9 @@
 {
   "PORT": 72727,
   "CLIENT_SECRET": "secret_string9492053205",
-  "MYSQL": {
-    "host": "localhost",
-    "user": "user",
-    "password": "password",
-    "database": "osu"
-  },
   "POSTGRES": {
     "host": "localhost",
+    "port": 5432,
     "user": "user",
     "password": "password",
     "database": "osu"
