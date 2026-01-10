@@ -55,7 +55,7 @@ async function getFetchedUsers() {
 
         return fetched_users;
     } catch (err) {
-        console.error("Failed to fetched users", err);
+        console.error("Failed to get fetched users", err);
         return null;
     }
 }
@@ -80,7 +80,7 @@ async function getFetchingUsers() {
 
         return fetching_users;
     } catch (err) {
-        console.error("Failed to fetched users", err);
+        console.error("Failed to get fetching users", err);
         return null;
     }
 }
@@ -174,7 +174,7 @@ app.get("/api/oauth", async function (req, res) {
     } else {
         console.log(token_data);
         console.log("Inserted token for user:", user_id, me.username);
-        //await addToQueue(token_data, user_id);
+        await addToQueue(token_data, user_id);
     }
 
     res.redirect(`${config.BASE_URL}/status`);

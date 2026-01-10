@@ -1,6 +1,8 @@
 module.exports = {
-  apps : [{
-    name   : "backend",
-    script : "./src/index.js"
-  }]
-}
+    apps: [
+        {
+            name: "osualt-score-fetcher",
+            script: "./src/index.js",
+        },
+    ],
+};
