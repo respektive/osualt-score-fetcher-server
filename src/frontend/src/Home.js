@@ -6,7 +6,7 @@ import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import Footer from "./Footer";
 
-const BASE_URL = "http://localhost:21528";
+const BASE_URL = "https://osualtv2.respektive.pw";
 const oauth_url = `https://osu.ppy.sh/oauth/authorize?client_id=37221&redirect_uri=${BASE_URL}/api/oauth&response_type=code&scope=identify%20public`;
 
 export default function Home() {
