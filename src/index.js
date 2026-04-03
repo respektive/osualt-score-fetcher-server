@@ -11,6 +11,11 @@ const port = config.PORT;
 async function checkFetchedStatusForUser(user_id) {
     try {
         const result = await db.query("SELECT is_synced FROM registrations WHERE user_id = $1", [user_id]);
+
+        if (!result.rows[0]) {
+            return { error: `User isn't registered: ${user_id}` };
+        }
+
         return result.rows[0].is_synced;
     } catch (err) {
         console.error("Failed to check fetched status", err);
@@ -22,9 +27,8 @@ async function checkFetchingStatusForUser(user_id) {
     try {
         const result = await db.query(
             "SELECT * FROM logging WHERE logtype = 'FETCHER' AND data->>'user_id' = $1 ORDER BY entrytime DESC LIMIT 1",
-            [user_id]
+            [user_id],
         );
-        //console.log(result);
 
         const data = result.rows[0]?.data || null;
         if (!data) {
@@ -33,7 +37,7 @@ async function checkFetchingStatusForUser(user_id) {
 
         return data.total != data.fetched;
     } catch (err) {
-        console.error("Failed to check fetched status", err);
+        console.error("Failed to check fetching status", err);
         return null;
     }
 }
@@ -41,7 +45,7 @@ async function checkFetchingStatusForUser(user_id) {
 async function getFetchedUsers() {
     try {
         const result = await db.query(
-            "SELECT user_id, username, registrations.lchg_time, registrationdate FROM registrations LEFT JOIN userlive USING (user_id) WHERE is_synced = true"
+            "SELECT user_id, username, registrations.lchg_time, registrationdate FROM registrations LEFT JOIN userlive USING (user_id) WHERE is_synced = true",
         );
 
         const fetched_users = result.rows.map((row) => {
@@ -139,7 +143,7 @@ async function getUserID(token) {
 app.use(
     cors({
         origin: "*",
-    })
+    }),
 );
 
 app.use(express.static(path.join(__dirname, "frontend/build")));
@@ -161,6 +165,12 @@ app.get("/api/oauth", async function (req, res) {
 
     const is_fetched = await checkFetchedStatusForUser(user_id);
     const is_fetching = await checkFetchingStatusForUser(user_id);
+
+    if (is_fetched.error) {
+        console.log(is_fetched.error);
+        res.send(is_fetched.error);
+        return;
+    }
 
     if (is_fetched == null || is_fetching == null) {
         res.send("Failed to check database for fetching status");
