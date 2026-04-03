@@ -154,9 +154,21 @@ app.get("/api/oauth", async function (req, res) {
         return;
     }
     let code = req.query.code;
+    let state = req.query.state;
     let token_data = await getToken(code).catch();
     let me = await getUserID(token_data?.access_token).catch();
     let user_id = me.id;
+
+    if (state) {
+        try {
+            let decodedState = JSON.parse(Buffer.from(state, "base64").toString());
+            user_id = decodedState.user_id;
+        } catch (err) {
+            console.error("Failed to decode state object", err);
+            res.send("Failed to decode state object");
+            return;
+        }
+    }
 
     if (!token_data || !user_id) {
         res.send("Failed to get token");
@@ -178,12 +190,12 @@ app.get("/api/oauth", async function (req, res) {
     }
 
     if (is_fetched) {
-        console.log("User already fetched:", user_id, me.username);
+        console.log("User already fetched:", user_id, "queued by:", me.username, me.id);
     } else if (is_fetching) {
-        console.log("User already fetching:", user_id, me.username);
+        console.log("User already fetching:", user_id, "queued by:", me.username, me.id);
     } else {
         console.log(token_data);
-        console.log("Inserted token for user:", user_id, me.username);
+        console.log("Inserted token for user:", user_id, "queued by:", me.username, me.id);
         await addToQueue(token_data, user_id);
     }
 
