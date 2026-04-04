@@ -1,7 +1,10 @@
 import Status from "./Status";
 import Home from "./Home";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { Box } from "@mui/material";
 import "@fontsource/comfortaa/300.css";
 import "@fontsource/comfortaa/400.css";
 import "@fontsource/comfortaa/500.css";
@@ -28,12 +31,24 @@ function App() {
         <ThemeProvider theme={mainTheme}>
             <CssBaseline />
             <BrowserRouter>
-                <Routes>
-                    <Route index element={<Home />} />
-                    <Route path="status" element={<Status />} />
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        minHeight: "100vh",
+                    }}
+                >
+                    <Navbar />
+                    <Box component="main" sx={{ flexGrow: 1 }}>
+                        <Routes>
+                            <Route index element={<Home />} />
+                            <Route path="status" element={<Status />} />
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </Box>
+                    <Footer />
+                </Box>
             </BrowserRouter>
         </ThemeProvider>
     );

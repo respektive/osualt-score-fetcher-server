@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Box, Stack, Paper, Typography, Button, Link, TextField } from "@mui/material";
-import Footer from "./Footer";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
 const OAUTH_URL = `https://osu.ppy.sh/oauth/authorize?client_id=37221&redirect_uri=${BASE_URL}/api/oauth&response_type=code&scope=identify%20public`;
@@ -38,7 +37,7 @@ export default function Home() {
 
     return (
         <>
-            <Box display="flex" justifyContent="center" sx={{ mt: 8, px: 2 }}>
+            <Box display="flex" justifyContent="center" sx={{ mt: 12, px: 2 }}>
                 <Paper
                     elevation={2}
                     sx={{
@@ -118,7 +117,6 @@ export default function Home() {
                     </Stack>
                 </Paper>
             </Box>
-            <Footer />
         </>
     );
 }

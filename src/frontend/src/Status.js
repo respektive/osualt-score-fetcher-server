@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Grid, LinearProgress, Typography, Paper, Snackbar, Alert } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import Footer from "./Footer";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
 
@@ -68,7 +67,7 @@ export default function Status() {
 
     return (
         <>
-            <Grid container align="center" justify="center" sx={{ padding: 5 }}>
+            <Grid container align="center" justify="center" sx={{ padding: 5, mt: 4 }}>
                 <Grid item xs={6} sx={{ padding: "10px" }}>
                     <Typography variant="h4">List of users currently being fetched:</Typography>
                     {current.map((user) => (
@@ -108,12 +107,12 @@ export default function Status() {
                     </Grid>
                 </Grid>
             </Grid>
-            <Footer />
 
             <Snackbar
                 anchorOrigin={{ vertical: "top", horizontal: "left" }}
+                sx={{ mt: 8 }}
                 open={snackbarOpen}
-                autoHideDuration={5000}
+                autoHideDuration={10000}
                 onClose={handleSnackbarClose}
             >
                 <Alert onClose={handleSnackbarClose} severity={alertType !== "queued" ? "info" : "success"} variant="filled">
