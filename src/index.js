@@ -199,15 +199,19 @@ app.get("/api/oauth", async function (req, res) {
 
     if (is_fetched) {
         console.log("User already fetched:", user_id, "queued by:", me.username, me.id);
+        res.redirect(`${config.BASE_URL}/status?alert=already_fetched&id=${user_id}`);
+        return;
     } else if (is_fetching) {
         console.log("User already fetching:", user_id, "queued by:", me.username, me.id);
+        res.redirect(`${config.BASE_URL}/status?alert=already_fetching&id=${user_id}`);
+        return;
     } else {
         console.log(token_data);
         console.log("Inserted token for user:", user_id, "queued by:", me.username, me.id);
         await addToQueue(token_data, user_id);
+        res.redirect(`${config.BASE_URL}/status?alert=queued&id=${user_id}`);
+        return;
     }
-
-    res.redirect(`${config.BASE_URL}/status`);
 });
 
 app.get("/api/current", async function (req, res) {

@@ -1,23 +1,47 @@
 import React, { useEffect, useState, useRef } from "react";
-import Grid from "@mui/material/Grid";
+import { useSearchParams } from "react-router-dom";
+import { Grid, LinearProgress, Typography, Paper, Snackbar, Alert } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import LinearProgress from "@mui/material/LinearProgress";
-import Typography from "@mui/material/Typography";
-import Paper from "@mui/material/Paper";
 import Footer from "./Footer";
+
+const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
 
 export default function Status() {
     const intervalRef = useRef();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const alertType = searchParams.get("alert");
+    const id = searchParams.get("id");
+
+    const [snackbarOpen, setSnackbarOpen] = useState(!!alertType);
+
+    useEffect(() => {
+        if (alertType) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [alertType]);
+
+    const getAlertMessage = () => {
+        if (alertType === "already_fetched") return `User already fetched. User ID: ${id}`;
+        if (alertType === "already_fetching") return `User currently fetching. User ID: ${id}`;
+        if (alertType === "queued") return `User added to fetching queue. User ID: ${id}`;
+
+        return;
+    };
+
+    const handleSnackbarClose = (event, reason) => {
+        if (reason === "clickaway") return;
+        setSnackbarOpen(false);
+    };
 
     const [current, setCurrent] = useState([]);
     const [fetched, setFetched] = useState([]);
 
     const fetchData = async () => {
-        const current = await fetch("/api/current");
+        const current = await fetch(`${BASE_URL}/api/current`);
         const currentJson = await current.json();
         setCurrent(currentJson);
 
-        const fetched = await fetch("/api/fetched");
+        const fetched = await fetch(`${BASE_URL}/api/fetched`);
         const fetchedJson = await fetched.json();
         fetchedJson.sort((a, b) => Intl.Collator().compare(a.username, b.username));
         setFetched(fetchedJson);
@@ -85,6 +109,17 @@ export default function Status() {
                 </Grid>
             </Grid>
             <Footer />
+
+            <Snackbar
+                anchorOrigin={{ vertical: "top", horizontal: "left" }}
+                open={snackbarOpen}
+                autoHideDuration={5000}
+                onClose={handleSnackbarClose}
+            >
+                <Alert onClose={handleSnackbarClose} severity={alertType !== "queued" ? "info" : "success"} variant="filled">
+                    {getAlertMessage()}
+                </Alert>
+            </Snackbar>
         </>
     );
 }
