@@ -162,6 +162,14 @@ app.get("/api/oauth", async function (req, res) {
     if (state) {
         try {
             let decodedState = JSON.parse(Buffer.from(state, "base64").toString());
+
+            // user id has to be a positive integer
+            if (!/^\d+$/.test(decodedState.user_id) || decodedState.user_id > 2147483647) {
+                console.error("Invalid user_id:", decodedState.user_id);
+                res.send(`Invalid user_id: ${decodedState.user_id}`);
+                return;
+            }
+
             user_id = decodedState.user_id;
         } catch (err) {
             console.error("Failed to decode state object", err);
@@ -178,7 +186,7 @@ app.get("/api/oauth", async function (req, res) {
     const is_fetched = await checkFetchedStatusForUser(user_id);
     const is_fetching = await checkFetchingStatusForUser(user_id);
 
-    if (is_fetched.error) {
+    if (is_fetched?.error) {
         console.log(is_fetched.error);
         res.send(is_fetched.error);
         return;

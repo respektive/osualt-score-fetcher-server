@@ -7,7 +7,7 @@ import Link from "@mui/material/Link";
 import TextField from "@mui/material/TextField";
 import Footer from "./Footer";
 
-const BASE_URL = "https://osualtv2.respektive.pw";
+const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
 const OAUTH_URL = `https://osu.ppy.sh/oauth/authorize?client_id=37221&redirect_uri=${BASE_URL}/api/oauth&response_type=code&scope=identify%20public`;
 
 export default function Home() {
@@ -19,7 +19,7 @@ export default function Home() {
         setUserId(value);
 
         // user id has to be a positive integer
-        if (value === "" || /^\d+$/.test(value)) {
+        if (value === "" || (/^\d+$/.test(value) && value <= 2147483647)) {
             setError(false);
         } else {
             setError(true);
@@ -88,7 +88,6 @@ export default function Home() {
                     </Paper>
                 </Grid>
             </Grid>
-
             <Footer />
         </>
     );
