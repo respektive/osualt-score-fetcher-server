@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import Grid from "@mui/material/Grid";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Link from "@mui/material/Link";
-import TextField from "@mui/material/TextField";
+import { Box, Stack, Paper, Typography, Button, Link, TextField } from "@mui/material";
 import Footer from "./Footer";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
@@ -13,16 +8,25 @@ const OAUTH_URL = `https://osu.ppy.sh/oauth/authorize?client_id=37221&redirect_u
 export default function Home() {
     const [userId, setUserId] = useState("");
     const [error, setError] = useState(false);
+    const [helperText, setHelperText] = useState("");
 
     const handleUserIdChange = (e) => {
         const value = e.target.value;
         setUserId(value);
 
         // user id has to be a positive integer
-        if (value === "" || (/^\d+$/.test(value) && value <= 2147483647)) {
-            setError(false);
-        } else {
+        const isNumber = value === "" || /^\d+$/.test(value);
+        const isWithinRange = value === "" || parseInt(value) <= 2147483647;
+
+        if (!isNumber) {
             setError(true);
+            setHelperText("Numbers only");
+        } else if (!isWithinRange) {
+            setError(true);
+            setHelperText("User ID is too large");
+        } else {
+            setError(false);
+            setHelperText("");
         }
     };
 
@@ -34,60 +38,86 @@ export default function Home() {
 
     return (
         <>
-            <Grid container spacing={0} align="center" justify="center" direction="column">
-                <Grid item sx={{ pt: 10, pl: 25, pr: 25 }}>
-                    <Paper sx={{ padding: 5 }}>
-                        <Typography variant="h6">
-                            Use this page to fetch yours or someone elses scores for the osu!alternative v2 discord bot.
-                        </Typography>
+            <Box display="flex" justifyContent="center" sx={{ mt: 8, px: 2 }}>
+                <Paper
+                    elevation={2}
+                    sx={{
+                        p: 3,
+                        maxWidth: 650,
+                        width: "100%",
+                        borderRadius: 1,
+                    }}
+                >
+                    <Stack spacing={2.5}>
+                        <Box>
+                            <Typography variant="h5" fontWeight="600" gutterBottom>
+                                o!alt Scorefetcher
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Authorize with osu! to sync scores with the{" "}
+                                <strong style={{ textWrap: "nowrap" }}>osu!alternative</strong> Discord bot.
+                            </Typography>
+                        </Box>
 
-                        <Typography variant="h6">
-                            After authorizing with osu! you will get redirected to the{" "}
-                            <Link href="/status" underline="hover">
-                                status page
-                            </Link>
-                            . It shows any users currently being fetched and users already done.
-                        </Typography>
+                        <Box
+                            sx={{
+                                bgcolor: "#ffffff1a",
+                                p: 2,
+                                borderRadius: 1,
+                                borderLeft: "4px solid",
+                                borderColor: "primary.main",
+                            }}
+                        >
+                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 0.5 }}>
+                                A few things to note:
+                            </Typography>
+                            <Typography variant="body1" component="div" sx={{ lineHeight: 1.6 }}>
+                                <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
+                                    <li>
+                                        You can enter a <strong>User ID</strong> or leave it blank to use your own.
+                                    </li>
+                                    <li>
+                                        The user must be <strong>registered</strong> in the Discord bot first.
+                                    </li>
+                                    <li>
+                                        Once started, you can track the progress on the{" "}
+                                        <Link href="/status" underline="always">
+                                            status page
+                                        </Link>
+                                        .
+                                    </li>
+                                </ul>
+                            </Typography>
+                        </Box>
 
-                        <Typography variant="h6">
-                            You are not able to fetch multiple times. Users need to be registered in the discord bot before
-                            fetching.
-                        </Typography>
-
-                        <Typography variant="h6">
-                            Enter a valid User ID in the field below, or leave it empty to use your own ID, then click the button
-                            to authorize.
-                        </Typography>
-
-                        <Grid container direction="row" justifyContent="center" alignItems="baseline" spacing={2}>
-                            <Grid item>
-                                <TextField
-                                    label="User ID"
-                                    variant="outlined"
-                                    type="text"
-                                    margin="dense"
-                                    size="small"
-                                    value={userId}
-                                    onChange={handleUserIdChange}
-                                    error={error}
-                                    helperText={error ? "Invalid User ID" : ""}
-                                ></TextField>
-                            </Grid>
-                            <Grid item>
-                                <Button
-                                    variant="contained"
-                                    disableElevation
-                                    href={error ? "#" : fullUrl}
-                                    disabled={error}
-                                    sx={{ mt: 3.8 }}
-                                >
-                                    Authorize with osu!
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </Paper>
-                </Grid>
-            </Grid>
+                        <Stack direction="row" spacing={2}>
+                            <TextField
+                                label="osu! User ID"
+                                placeholder="e.g. 39828"
+                                size="small"
+                                sx={{ flexGrow: 1 }}
+                                value={userId}
+                                onChange={handleUserIdChange}
+                                error={error}
+                                helperText={error ? helperText : ""}
+                            />
+                            <Button
+                                variant="contained"
+                                component="a"
+                                href={error ? "#" : fullUrl}
+                                disabled={error}
+                                sx={{
+                                    height: 40,
+                                    textTransform: "none",
+                                }}
+                                disableElevation
+                            >
+                                Authorize with osu!
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </Paper>
+            </Box>
             <Footer />
         </>
     );
