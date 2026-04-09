@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Box, Typography, Paper, Snackbar, Alert, Stack, Divider, LinearProgress } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -6,7 +6,6 @@ import { DataGrid } from "@mui/x-data-grid";
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
 
 export default function Status() {
-    const intervalRef = useRef();
     const [searchParams, setSearchParams] = useSearchParams();
     const alertType = searchParams.get("alert");
     const id = searchParams.get("id");
@@ -35,23 +34,42 @@ export default function Status() {
     const [current, setCurrent] = useState([]);
     const [fetched, setFetched] = useState([]);
 
-    const fetchData = async () => {
-        const current = await fetch(`${BASE_URL}/api/current`);
-        const currentJson = await current.json();
-        setCurrent(currentJson);
+    const fetchCurrentData = async () => {
+        try {
+            const currentRes = await fetch(`${BASE_URL}/api/current`);
+            const currentJson = await currentRes.json();
+            setCurrent(currentJson);
+        } catch (error) {
+            console.error("Error fetching current data:", error);
+        }
+    };
 
-        const fetched = await fetch(`${BASE_URL}/api/fetched`);
-        const fetchedJson = await fetched.json();
-        fetchedJson.sort((a, b) => Intl.Collator().compare(a.username, b.username));
-        setFetched(fetchedJson);
+    const fetchFetchedData = async () => {
+        try {
+            const fetchedRes = await fetch(`${BASE_URL}/api/fetched`);
+            const fetchedJson = await fetchedRes.json();
+            fetchedJson.sort((a, b) => Intl.Collator().compare(a.username, b.username));
+            setFetched(fetchedJson);
+        } catch (error) {
+            console.error("Error fetching fetched data:", error);
+        }
     };
 
     useEffect(() => {
-        fetchData();
-        intervalRef.current = setInterval(fetchData, 10000);
+        fetchCurrentData();
+        const currentInterval = setInterval(fetchCurrentData, 10000);
 
         return () => {
-            clearInterval(intervalRef.current);
+            clearInterval(currentInterval);
+        };
+    }, []);
+
+    useEffect(() => {
+        fetchFetchedData();
+        const fetchedInterval = setInterval(fetchFetchedData, 60000);
+
+        return () => {
+            clearInterval(fetchedInterval);
         };
     }, []);
 

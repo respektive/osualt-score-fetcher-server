@@ -8,6 +8,10 @@ const db = require("./db.js");
 const app = express();
 const port = config.PORT;
 
+let cachedFetchedUsers = null;
+let lastFetchedTime = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
+
 async function checkFetchedStatusForUser(user_id) {
     try {
         const result = await db.query("SELECT is_synced FROM registrations WHERE user_id = $1", [user_id]);
@@ -44,6 +48,11 @@ async function checkFetchingStatusForUser(user_id) {
 
 async function getFetchedUsers() {
     try {
+        const now = Date.now();
+        if (cachedFetchedUsers && lastFetchedTime && now - lastFetchedTime < CACHE_TTL) {
+            return cachedFetchedUsers;
+        }
+
         const result = await db.query(
             "SELECT user_id, username, registrations.lchg_time, registrationdate FROM registrations LEFT JOIN userlive USING (user_id) WHERE is_synced = true",
         );
@@ -56,6 +65,9 @@ async function getFetchedUsers() {
                 registration_date: row.registrationdate,
             };
         });
+
+        cachedFetchedUsers = fetched_users;
+        lastFetchedTime = now;
 
         return fetched_users;
     } catch (err) {
