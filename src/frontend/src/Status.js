@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Grid, LinearProgress, Typography, Paper, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Paper, Snackbar, Alert, Stack, Divider, LinearProgress } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
@@ -63,50 +63,86 @@ export default function Status() {
     ];
 
     const paginationModel = { page: 0, pageSize: 10 };
-    const sortModel = { field: "updated_at", sort: "desc" };
+    const sortModel = [{ field: "updated_at", sort: "desc" }];
 
     return (
-        <>
-            <Grid container align="center" justify="center" sx={{ padding: 5, mt: 4 }}>
-                <Grid item xs={6} sx={{ padding: "10px" }}>
-                    <Typography variant="h4">List of users currently being fetched:</Typography>
-                    {current.map((user) => (
-                        <Paper sx={{ width: "80%", mt: "10px" }}>
-                            <Typography variant="h6" key={user.username}>
-                                {user.username} | {user.progress} | {user.percentage ? user.percentage.toFixed(2) : "0.0"}%
-                            </Typography>
-                            <LinearProgress
-                                sx={{ width: "80%" }}
-                                variant="determinate"
-                                value={user.percentage}
-                                key={user.percentage}
+        <Box display="flex" justifyContent="center" sx={{ mt: 4, px: 2, pb: 4 }}>
+            <Paper
+                elevation={2}
+                sx={{
+                    p: 3,
+                    maxWidth: 1000,
+                    width: "100%",
+                    borderRadius: 1,
+                }}
+            >
+                <Stack spacing={4}>
+                    <Box>
+                        <Typography variant="h6" fontWeight="600" gutterBottom>
+                            Currently Fetching
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Box
+                            sx={{
+                                bgcolor: "#ffffff1a",
+                                p: 2,
+                                borderRadius: 1,
+                                borderLeft: "4px solid",
+                                borderColor: "primary.main",
+                            }}
+                        >
+                            {current.length === 0 ? (
+                                <Typography variant="body2" color="text.secondary">
+                                    No active fetches in progress.
+                                </Typography>
+                            ) : (
+                                <Stack spacing={2}>
+                                    {current.map((user) => (
+                                        <Box key={user.username} sx={{ pb: 1 }}>
+                                            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {user.username} | {user.progress}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {user.percentage ? user.percentage.toFixed(2) : "0.0"}%
+                                                </Typography>
+                                            </Box>
+                                            <LinearProgress
+                                                variant="determinate"
+                                                value={user.percentage}
+                                                sx={{ height: 6, borderRadius: 2 }}
+                                            />
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            )}
+                        </Box>
+                    </Box>
+
+                    <Box>
+                        <Typography variant="h6" fontWeight="600" gutterBottom>
+                            Recently Fetched
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Paper sx={{ borderRadius: 1 }}>
+                            <DataGrid
+                                rows={fetched.map((user, index) => ({
+                                    id: index,
+                                    user_id: user.user_id,
+                                    username: user.username,
+                                    updated_at: user.updated_at,
+                                    registration_date: user.registration_date,
+                                }))}
+                                columns={columns}
+                                initialState={{ pagination: { paginationModel }, sorting: { sortModel } }}
+                                pageSizeOptions={[5, 10, 15, 25, 50, 100]}
+                                disableRowSelectionOnClick
+                                sx={{ border: 0, maxHeight: 800 }}
                             />
                         </Paper>
-                    ))}
-                </Grid>
-
-                <Grid item xs={6} sx={{ padding: "10px" }}>
-                    <Typography variant="h4" sx={{ mb: "10px" }}>
-                        List of users already done fetching:
-                    </Typography>
-                    <Grid container spacing={1}>
-                        <DataGrid
-                            rows={fetched.map((user, index) => ({
-                                id: index,
-                                user_id: user.user_id,
-                                username: user.username,
-                                updated_at: user.updated_at,
-                                registration_date: user.registration_date,
-                            }))}
-                            columns={columns}
-                            initialState={{ pagination: { paginationModel }, sorting: { sortModel: [sortModel] } }}
-                            pageSizeOptions={[5, 10, 15, 25, 50, 100]}
-                            disableRowSelectionOnClick
-                            sx={{ border: 0 }}
-                        />
-                    </Grid>
-                </Grid>
-            </Grid>
+                    </Box>
+                </Stack>
+            </Paper>
 
             <Snackbar
                 anchorOrigin={{ vertical: "top", horizontal: "left" }}
@@ -119,6 +155,6 @@ export default function Status() {
                     {getAlertMessage()}
                 </Alert>
             </Snackbar>
-        </>
+        </Box>
     );
 }

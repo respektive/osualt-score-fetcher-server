@@ -37,12 +37,12 @@ export default function Home() {
 
     return (
         <>
-            <Box display="flex" justifyContent="center" sx={{ mt: 12, px: 2 }}>
+            <Box display="flex" justifyContent="center" sx={{ mt: 4, px: 2 }}>
                 <Paper
                     elevation={2}
                     sx={{
                         p: 3,
-                        maxWidth: 650,
+                        maxWidth: 1000,
                         width: "100%",
                         borderRadius: 1,
                     }}

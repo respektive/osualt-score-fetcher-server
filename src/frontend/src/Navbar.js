@@ -17,12 +17,12 @@ export default function Navbar() {
         >
             <Toolbar sx={{ justifyContent: "flex-start" }}>
                 <Typography
-                    variant="h5"
+                    variant="h6"
                     component={RouterLink}
                     to="/"
                     sx={{
                         textDecoration: "none",
-                        color: "inherit",
+                        color: "#e0e0e0",
                         pr: 4,
                         fontWeight: 700,
                     }}
@@ -34,11 +34,11 @@ export default function Navbar() {
                     <Button
                         component={RouterLink}
                         to="/"
-                        color="inherit"
                         sx={{
                             fontWeight: isActive("/") ? 700 : 400,
                             color: isActive("/") ? "primary.main" : "inherit",
                             textTransform: "none",
+                            fontSize: "0.9rem",
                         }}
                     >
                         Home
@@ -46,11 +46,11 @@ export default function Navbar() {
                     <Button
                         component={RouterLink}
                         to="/status"
-                        color="inherit"
                         sx={{
                             fontWeight: isActive("/status") ? 700 : 400,
                             color: isActive("/status") ? "primary.main" : "inherit",
                             textTransform: "none",
+                            fontSize: "0.9rem",
                         }}
                     >
                         Status
