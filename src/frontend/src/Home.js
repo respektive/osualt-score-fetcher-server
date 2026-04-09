@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Box, Stack, Paper, Typography, Button, Link, TextField } from "@mui/material";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
