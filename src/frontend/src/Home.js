@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Box, Stack, Paper, Typography, Button, Link, TextField } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
 const OAUTH_URL = `https://osu.ppy.sh/oauth/authorize?client_id=37221&redirect_uri=${BASE_URL}/api/oauth&response_type=code&scope=identify%20public`;
@@ -37,7 +38,7 @@ export default function Home() {
 
     return (
         <>
-            <Box display="flex" justifyContent="center" sx={{ mt: 4, px: 2 }}>
+            <Box display="flex" justifyContent="center" sx={{ mt: 4, px: 2, pb: 4 }}>
                 <Paper
                     elevation={2}
                     sx={{
@@ -80,7 +81,7 @@ export default function Home() {
                                     </li>
                                     <li>
                                         Once started, you can track the progress on the{" "}
-                                        <Link href="/status" underline="always">
+                                        <Link component={RouterLink} to="/status" underline="always">
                                             status page
                                         </Link>
                                         .
