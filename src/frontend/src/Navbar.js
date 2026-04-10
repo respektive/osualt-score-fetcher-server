@@ -24,6 +24,7 @@ export default function Navbar() {
                         color: "#e0e0e0",
                         pr: 4,
                         fontWeight: 700,
+                        textWrap: "nowrap",
                     }}
                 >
                     o!alt Scorefetcher

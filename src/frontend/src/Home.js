@@ -45,7 +45,6 @@ export default function Home() {
                         p: 3,
                         maxWidth: 1000,
                         width: "100%",
-                        borderRadius: 1,
                     }}
                 >
                     <Stack spacing={2.5}>
@@ -109,6 +108,9 @@ export default function Home() {
                                 sx={{
                                     height: 40,
                                     textTransform: "none",
+                                    lineHeight: 1,
+                                    p: 1,
+                                    minWidth: 160,
                                 }}
                                 disableElevation
                             >

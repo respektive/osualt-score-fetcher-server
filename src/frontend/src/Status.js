@@ -91,7 +91,6 @@ export default function Status() {
                     p: 3,
                     maxWidth: 1000,
                     width: "100%",
-                    borderRadius: 1,
                 }}
             >
                 <Stack spacing={4}>
