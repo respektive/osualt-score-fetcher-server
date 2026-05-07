@@ -104,7 +104,7 @@ async function getFetchingUsers() {
 async function addToQueue(token_data, user_id) {
     try {
         const result = await db.query(
-            "INSERT INTO tokens VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET token_data = EXCLUDED.token_data",
+            "INSERT INTO tokens VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET token = EXCLUDED.token",
             [token_data, user_id],
         );
         console.log(`Inserted ${result.rowCount} row(s)`);
