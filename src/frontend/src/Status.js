@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Box, Typography, Paper, Snackbar, Alert, Stack, Divider, LinearProgress } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
-const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
+const BASE_URL = process.env.REACT_APP_BASE_URL || "";
 
 export default function Status() {
     const [searchParams, setSearchParams] = useSearchParams();
