@@ -1,118 +1,116 @@
 const express = require("express");
 const cors = require("cors");
-const { Worker, workerData } = require("node:worker_threads");
-const path = require("node:path");
-const fetch = require("node-fetch");
-const mysql = require("mysql");
-const util = require("util");
+const path = require("path");
 const config = require("../config.json");
 
-const client = require("prom-client");
-
-const dbQueryDurationHistogram = new client.Histogram({
-    name: "score_fetcher_db_query_duration_histogram",
-    help: "Histogram of database query durations in seconds",
-    labelNames: ["query"],
-});
-
-const osuApiRequestDurationHistogram = new client.Histogram({
-    name: "score_fetcher_osu_api_request_duration_histogram",
-    help: "Histogram of osu api request durations in seconds",
-    labelNames: ["route", "status_code"],
-});
-
-const queueWaitingGauge = new client.Gauge({
-    name: "score_fetcher_queue_waiting_gauge",
-    help: "The number of users waiting in the queue",
-});
-
-const queueFetchingGauge = new client.Gauge({
-    name: "score_fetcher_queue_fetching_gauge",
-    help: "The number of users currently being fetched",
-});
-
-function observeDbQueryDuration(duration, query) {
-    dbQueryDurationHistogram.labels(query).observe(duration);
-}
-
-function observeOsuApiRequestDuration(duration, route, statusCode) {
-    osuApiRequestDurationHistogram.labels(route, statusCode).observe(duration);
-}
-
-const collectDefaultMetrics = client.collectDefaultMetrics;
-const Registry = client.Registry;
-const register = new Registry();
-collectDefaultMetrics({ register });
-
-register.registerMetric(dbQueryDurationHistogram);
-register.registerMetric(osuApiRequestDurationHistogram);
-register.registerMetric(queueWaitingGauge);
-register.registerMetric(queueFetchingGauge);
-
-const connection = mysql.createPool(config.MYSQL);
-const runSql = util.promisify(connection.query).bind(connection);
+const db = require("./db.js");
 
 const app = express();
 const port = config.PORT;
 
-const MAX_ACTIVE = config.MAX_ACTIVE || 2;
-let currentActive = 0;
+let cachedFetchedUsers = null;
+let lastFetchedTime = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
-async function resumeQueue() {
-    const queue = await runSql("SELECT * FROM queue WHERE progress != 'Waiting in queue...'");
+async function checkFetchedStatusForUser(user_id) {
+    try {
+        const result = await db.query("SELECT is_synced FROM registrations WHERE user_id = $1", [user_id]);
 
-    // if there are no users mid-fetch to resume then process the users waiting in queue
-    if (queue.length == 0) {
-        processQueue();
-        return;
-    }
-
-    for (const user of queue) {
-        console.log(`Resuming ${user.username}...`);
-        addToQueue(user);
-        await new Promise((r) => setTimeout(r, 2000));
-    }
-}
-
-async function processQueue() {
-    const queue = await runSql("SELECT * FROM queue WHERE progress = 'Waiting in queue...' ORDER BY date_added ASC");
-
-    if (currentActive >= MAX_ACTIVE || queue.length == 0) return;
-
-    const [user] = queue.splice(0, 1);
-    currentActive++;
-
-    queueWaitingGauge.set(queue.length);
-    queueFetchingGauge.set(currentActive);
-
-    const worker = new Worker(path.resolve(__dirname, "fetcher.js"), { workerData: user });
-
-    worker.on("message", (msg) => {
-        if (msg.type == "osu_metrics") {
-            observeOsuApiRequestDuration(msg.data.osuAPIDuration, msg.data.route, msg.data.statusCode);
-        } else if (msg.type == "db_metrics") {
-            observeDbQueryDuration(msg.data.dbQueryDuration, msg.data.query);
-        } else {
-            console.log(msg);
+        if (!result.rows[0]) {
+            return { error: `User isn't registered: ${user_id}` };
         }
-    });
-    worker.on("error", (err) => console.error(err));
-    worker.on("exit", (code) => {
-        currentActive = Math.max(0, currentActive - 1);
-        queueFetchingGauge.set(currentActive);
-        processQueue();
-        if (code !== 0) console.log(`Worker stopped with exit code ${code}`);
-    });
+
+        return result.rows[0].is_synced;
+    } catch (err) {
+        console.error("Failed to check fetched status", err);
+        return null;
+    }
 }
 
-async function addToQueue(user) {
-    const progress = "Waiting in queue...";
-    await runSql(
-        "insert into queue (user_id, username, progress, data) values (?, ?, ?, ?) ON DUPLICATE KEY UPDATE progress = ?",
-        [user.user_id, user.username, progress, JSON.stringify(user.data), progress]
-    );
+async function checkFetchingStatusForUser(user_id) {
+    try {
+        const result = await db.query(
+            "SELECT * FROM logging WHERE logtype = 'FETCHER' AND data->>'user_id' = $1 ORDER BY entrytime DESC LIMIT 1",
+            [user_id],
+        );
 
-    processQueue();
+        const data = result.rows[0]?.data || null;
+        if (!data) {
+            return false;
+        }
+
+        return data.total != data.fetched;
+    } catch (err) {
+        console.error("Failed to check fetching status", err);
+        return null;
+    }
+}
+
+async function getFetchedUsers() {
+    try {
+        const now = Date.now();
+        if (cachedFetchedUsers && lastFetchedTime && now - lastFetchedTime < CACHE_TTL) {
+            return cachedFetchedUsers;
+        }
+
+        const result = await db.query(
+            "SELECT user_id, username, registrations.lchg_time, registrationdate FROM registrations LEFT JOIN userlive USING (user_id) WHERE is_synced = true",
+        );
+
+        const fetched_users = result.rows.map((row) => {
+            return {
+                user_id: row.user_id,
+                username: row.username || "🔍❓🤕",
+                updated_at: row.lchg_time,
+                registration_date: row.registrationdate,
+            };
+        });
+
+        cachedFetchedUsers = fetched_users;
+        lastFetchedTime = now;
+
+        return fetched_users;
+    } catch (err) {
+        console.error("Failed to get fetched users", err);
+        return null;
+    }
+}
+
+async function getFetchingUsers() {
+    try {
+        const result = await db.query(`
+            SELECT DISTINCT ON (data->'user_id') data, data->'user_id' AS user_id, username, entrytime, message
+            FROM logging LEFT JOIN userlive ON (logging.data->>'user_id')::int = userlive.user_id
+            WHERE logtype = 'FETCHER' ORDER BY data->'user_id', entrytime DESC`);
+
+        const fetching_users = result.rows
+            .filter((row) => row.data.total != row.data.fetched)
+            .map((row) => {
+                return {
+                    user_id: row.user_id,
+                    username: row.username || "🔍❓🤕",
+                    progress: `Fetching scores... (${row.data.fetched}/${row.data.total})`,
+                    percentage: (row.data.fetched / row.data.total) * 100,
+                };
+            });
+
+        return fetching_users;
+    } catch (err) {
+        console.error("Failed to get fetching users", err);
+        return null;
+    }
+}
+
+async function addToQueue(token_data, user_id) {
+    try {
+        const result = await db.query(
+            "INSERT INTO tokens VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET token = EXCLUDED.token",
+            [token_data, user_id],
+        );
+        console.log(`Inserted ${result.rowCount} row(s)`);
+    } catch (err) {
+        console.error("Failed to insert user into queue", err);
+    }
 }
 
 async function getToken(code) {
@@ -126,18 +124,18 @@ async function getToken(code) {
             grant_type: "authorization_code",
             client_id: 37221,
             client_secret: config.CLIENT_SECRET,
-            redirect_uri: "https://osualt.respektive.pw/api/oauth",
+            redirect_uri: `${config.BASE_URL}/api/oauth`,
             code: code,
         }),
     }).then((response) => {
         return response.json();
     });
-    console.log(res);
+    //console.log(res);
 
     if (res.access_token) {
         return res;
     } else {
-        console.log("Failed to get token");
+        console.error("Failed to get token", res);
         return null;
     }
 }
@@ -160,73 +158,91 @@ async function getUserID(token) {
 app.use(
     cors({
         origin: "*",
-    })
+    }),
 );
 
-app.get("/oauth", async function (req, res) {
+app.use(express.static(path.join(__dirname, "frontend/build")));
+
+app.get("/api/oauth", async function (req, res) {
     if (!req.query.code) {
         res.send("No code received");
         return;
     }
     let code = req.query.code;
+    let state = req.query.state;
     let token_data = await getToken(code).catch();
-    let me = await getUserID(token_data.access_token).catch();
+    let me = await getUserID(token_data?.access_token).catch();
     let user_id = me.id;
+
+    if (state) {
+        try {
+            let decodedState = JSON.parse(Buffer.from(state, "base64").toString());
+
+            // user id has to be a positive integer
+            if (!/^\d+$/.test(decodedState.user_id) || decodedState.user_id > 2147483647) {
+                console.error("Invalid user_id:", decodedState.user_id);
+                res.send(`Invalid user_id: ${decodedState.user_id}`);
+                return;
+            }
+
+            user_id = decodedState.user_id;
+        } catch (err) {
+            console.error("Failed to decode state object", err);
+            res.send("Failed to decode state object");
+            return;
+        }
+    }
 
     if (!token_data || !user_id) {
         res.send("Failed to get token");
         return;
     }
 
-    const fetched = await runSql("SELECT * FROM fetched_users WHERE user_id = ?", user_id);
-    const fetching = await runSql("SELECT * FROM queue WHERE user_id = ?", user_id);
+    const is_fetched = await checkFetchedStatusForUser(user_id);
+    const is_fetching = await checkFetchingStatusForUser(user_id);
 
-    if (fetched.length > 0 && fetched[0].updated_at != null && fetched[0].updated_at > new Date(+new Date() - 12096e5)) {
-        console.log("User already fetched recently");
-    } else if (fetching.length > 0) {
-        console.log("User already fetching");
-    } else {
-        console.log("User not fetched recently");
-
-        addToQueue({
-            data: {
-                most_played_count: me.beatmap_playcounts_count,
-                ...token_data,
-            },
-            user_id: user_id,
-            username: me.username,
-        });
+    if (is_fetched?.error) {
+        console.log(is_fetched.error);
+        res.send(is_fetched.error);
+        return;
     }
 
-    console.log(token_data);
+    if (is_fetched == null || is_fetching == null) {
+        res.send("Failed to check database for fetching status");
+        return;
+    }
 
-    res.redirect("https://osualt.respektive.pw/status");
-
-    console.log(user_id);
-    console.log(me.username);
+    if (is_fetched) {
+        console.log("User already fetched:", user_id, "queued by:", me.username, me.id);
+        res.redirect(`${config.BASE_URL}/status?alert=already_fetched&id=${user_id}`);
+        return;
+    } else if (is_fetching) {
+        console.log("User already fetching:", user_id, "queued by:", me.username, me.id);
+        res.redirect(`${config.BASE_URL}/status?alert=already_fetching&id=${user_id}`);
+        return;
+    } else {
+        console.log(token_data);
+        console.log("Inserted token for user:", user_id, "queued by:", me.username, me.id);
+        await addToQueue(token_data, user_id);
+        res.redirect(`${config.BASE_URL}/status?alert=queued&id=${user_id}`);
+        return;
+    }
 });
 
-app.get("/current", async function (req, res) {
-    const current = await runSql("SELECT user_id, username, progress, percentage, date_added FROM queue ORDER BY date_added ASC");
-    res.send(current);
+app.get("/api/current", async function (req, res) {
+    const fetchngUsers = await getFetchingUsers();
+    res.send(fetchngUsers);
 });
 
-app.get("/fetched", async function (req, res) {
-    const fetched = await runSql("SELECT * FROM fetched_users");
-    res.send(fetched);
+app.get("/api/fetched", async function (req, res) {
+    const fetchedUsers = await getFetchedUsers();
+    res.send(fetchedUsers);
 });
 
-app.get("/", async function (req, res) {
-    res.redirect("https://osualt.respektive.pw/");
-});
-
-app.get("/metrics", async (req, res) => {
-    res.set("Content-Type", register.contentType);
-    res.send(await register.metrics());
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "frontend/build/index.html"));
 });
 
 app.listen(port, () => {
     console.log(`app listening at http://localhost:${port}`);
 });
-
-resumeQueue();
