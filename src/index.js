@@ -135,7 +135,7 @@ async function getToken(code) {
     if (res.access_token) {
         return res;
     } else {
-        console.log("Failed to get token");
+        console.error("Failed to get token", res);
         return null;
     }
 }

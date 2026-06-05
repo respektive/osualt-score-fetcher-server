@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Box, Stack, Paper, Typography, Button, Link, TextField } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 
-const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualtv2.respektive.pw";
+const BASE_URL = process.env.REACT_APP_BASE_URL || "https://osualt.respektive.pw";
 const OAUTH_URL = `https://osu.ppy.sh/oauth/authorize?client_id=37221&redirect_uri=${BASE_URL}/api/oauth&response_type=code&scope=identify%20public`;
 
 export default function Home() {
